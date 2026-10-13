@@ -185,6 +185,23 @@ export default function MechaMindApp() {
     try { localStorage.setItem('mechamind-theme', darkMode ? 'dark' : 'light'); } catch { /* Theme still works for this session. */ }
   }, [darkMode]);
   useEffect(() => {
+    const onBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const onInstalled = () => {
+      setInstallPrompt(null);
+      setToast('App installed. Your study space is ready.');
+    };
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!toast) return;
     const id = window.setTimeout(() => setToast(''), 3200);
     return () => window.clearTimeout(id);
@@ -294,7 +311,22 @@ export default function MechaMindApp() {
     { name: 'AI study desk', icon: <BrainCircuit size={18} /> },
   ];
 
-  async function installApp() {\n    if (installPrompt) {\n      await installPrompt.prompt();\n      const choice = await installPrompt.userChoice;\n      if (choice.outcome === 'accepted') notify('Installing your study app…');\n      else notify('No problem. You can install it whenever you like.');\n      setInstallPrompt(null);\n      return;\n    }\n    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);\n    if (isIOS) notify('On iPhone/iPad: tap Share in Safari, then Add to Home Screen.');\n    else if (window.matchMedia('(display-mode: standalone)').matches) notify('The app is already installed on this device.');\n    else notify('If your browser supports installation, open its menu and choose Install app or Add to Home screen.');\n  }\n\n  function choosePage(next: Page) { setPage(next); setMobileNav(false); setSubject('All subjects'); }
+  async function installApp() {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === 'accepted') notify('Installing your study app…');
+      else notify('No problem. You can install it whenever you like.');
+      setInstallPrompt(null);
+      return;
+    }
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) notify('On iPhone/iPad: tap Share in Safari, then Add to Home Screen.');
+    else if (window.matchMedia('(display-mode: standalone)').matches) notify('The app is already installed on this device.');
+    else notify('If your browser supports installation, open its menu and choose Install app or Add to Home screen.');
+  }
+
+  function choosePage(next: Page) { setPage(next); setMobileNav(false); setSubject('All subjects'); }
   function NoteCard({ note }: { note: Note }) {
     return <article className={'note-card ' + (view === 'list' ? 'note-list' : '')}>
       <div className={'note-cover cover-' + (note.subject.toLowerCase().replace(/[^a-z]/g, '') || 'other')}>
