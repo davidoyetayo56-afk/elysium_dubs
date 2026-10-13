@@ -382,3 +382,110 @@ body{min-height:100%;min-width:320px;overflow-x:hidden;overflow-y:auto;-webkit-o
 @media(max-width:1200px){.mm-app .personal-path-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mm-app .personal-mission{grid-template-columns:38px minmax(0,1fr)}.mm-app .personal-milestones{grid-column:2;grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:650px){.mm-app .personal-runway-heading{align-items:flex-start}.mm-app .personal-learning-badge{font-size:8px;padding:7px 8px;white-space:normal}.mm-app .personal-path-grid{gap:9px}.mm-app .personal-path-card{min-height:185px;padding:11px}.mm-app .personal-path-top{align-items:flex-start;gap:6px}.mm-app .personal-path-glyph{min-width:31px;height:31px;font-size:9px}.mm-app .personal-path-label{font-size:6.5px;letter-spacing:.6px}.mm-app .personal-path-card h3{font-size:11px}.mm-app .personal-path-card p{font-size:9px}.mm-app .personal-mission{grid-template-columns:34px minmax(0,1fr);gap:10px;padding:12px}.mm-app .personal-mission-icon{width:34px;height:34px}.mm-app .personal-milestones{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr))}.mm-app .personal-milestones span{font-size:8px;padding:8px 7px}.mm-app .personal-runway-note{font-size:8px}}
 @media(max-width:375px){.mm-app .personal-path-grid{grid-template-columns:1fr}.mm-app .personal-path-card{min-height:158px}.mm-app .personal-path-top{align-items:center}.mm-app .personal-path-label{font-size:7.5px}}
+
+
+/* Deep-black reading room: low-glare graphite, soft edges and quiet violet light. */
+.mm-app.theme-dark{
+  color-scheme:dark;background:#08090b;color:#f0f0f4;--ink:#f0f0f4;--muted:#9b9ca7;--line:#26272d;
+  --purple:#c5baff;--purple-dark:#ded9ff;--lavender:#211e31;--surface:#111216;
+  --surface-border:rgba(255,255,255,.085);--ambient-shadow:0 20px 70px rgba(0,0,0,.48);
+}
+.mm-app.theme-dark:before{background:radial-gradient(ellipse at 78% 0%,rgba(102,82,205,.13),transparent 34%),radial-gradient(ellipse at 24% 48%,rgba(78,86,140,.065),transparent 34%),linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px),#08090b;background-size:auto,auto,32px 32px,32px 32px,auto;mask-image:linear-gradient(to bottom,black 0%,rgba(0,0,0,.88) 74%,rgba(0,0,0,.62) 100%)}
+.mm-app.theme-dark .sidebar{background:rgba(12,13,16,.92);border-right-color:#24252c;backdrop-filter:blur(26px) saturate(115%)}
+.mm-app.theme-dark .main-shell,.mm-app.theme-dark .page-content{background:transparent}
+.mm-app.theme-dark .topbar{background:rgba(10,11,14,.83);border-bottom-color:#24252c;backdrop-filter:blur(24px) saturate(120%)}
+.mm-app.theme-dark .brand-lockup strong,.mm-app.theme-dark .page-heading h1,.mm-app.theme-dark .section-heading h2,.mm-app.theme-dark .note-card h3,.mm-app.theme-dark .stat-card strong,.mm-app.theme-dark .profile-copy strong,.mm-app.theme-dark .storage-copy strong,.mm-app.theme-dark .modal-head h2,.mm-app.theme-dark .empty-state h3,.mm-app.theme-dark .auto-organize-toggle strong,.mm-app.theme-dark .personal-path-card h3,.mm-app.theme-dark .personal-mission-copy h3{color:#f0f0f4}
+.mm-app.theme-dark .brand-symbol{background:linear-gradient(145deg,#a89af9,#7767d8);color:#101014;box-shadow:0 6px 22px rgba(142,125,244,.2)}
+.mm-app.theme-dark .brand-lockup strong span{color:#b9adff}
+.mm-app.theme-dark .workspace-label,.mm-app.theme-dark .breadcrumb span,.mm-app.theme-dark .profile-copy small,.mm-app.theme-dark .page-heading p,.mm-app.theme-dark .page-footer,.mm-app.theme-dark .personal-path-card p,.mm-app.theme-dark .personal-mission-copy p{color:#9697a2}
+.mm-app.theme-dark .nav-item{color:#a6a7b2}
+.mm-app.theme-dark .nav-item:hover,.mm-app.theme-dark .nav-active,.mm-app.theme-dark .subject-nav button:hover,.mm-app.theme-dark .subject-nav button.subject-active{background:#1d1b2b;color:#d1caff}
+.mm-app.theme-dark .nav-active:before{background:#b9adff}
+.mm-app.theme-dark .sidebar-divider,.mm-app.theme-dark .note-card-footer,.mm-app.theme-dark .import-hint{border-color:#25262d}
+.mm-app.theme-dark .storage-card,.mm-app.theme-dark .stat-card,.mm-app.theme-dark .note-card,.mm-app.theme-dark .whatsapp-tip,.mm-app.theme-dark .empty-state,.mm-app.theme-dark .view-toggle,.mm-app.theme-dark .subject-select select,.mm-app.theme-dark .global-search,.mm-app.theme-dark .action-menu,.mm-app.theme-dark .upload-modal,.mm-app.theme-dark .chat-panel,.mm-app.theme-dark .study-aside{background:rgba(17,18,22,.96);border-color:#292a31;color:#eeeeF3;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+.mm-app.theme-dark .stat-card{background:linear-gradient(145deg,#14151a,#101115)}
+.mm-app.theme-dark .note-card{background:rgba(17,18,22,.96)}
+.mm-app.theme-dark .note-card:hover{background:#14151a;border-color:#4b465d;box-shadow:0 20px 46px rgba(0,0,0,.35)}
+.mm-app.theme-dark .stat-icon,.mm-app.theme-dark .storage-icon,.mm-app.theme-dark .stat-lilac,.mm-app.theme-dark .stat-peach,.mm-app.theme-dark .stat-mint{background:#211f2e;color:#c5baff}
+.mm-app.theme-dark .storage-copy span,.mm-app.theme-dark .storage-card>small,.mm-app.theme-dark .stat-card span,.mm-app.theme-dark .note-meta,.mm-app.theme-dark .note-card-footer,.mm-app.theme-dark .note-tags span,.mm-app.theme-dark .empty-state p,.mm-app.theme-dark .whatsapp-tip p,.mm-app.theme-dark .modal-head p,.mm-app.theme-dark .drop-zone>span,.mm-app.theme-dark .drop-zone small,.mm-app.theme-dark .auto-organize-toggle small{color:#999aa5}
+.mm-app.theme-dark .welcome-panel{background:radial-gradient(ellipse at 82% 5%,rgba(113,91,204,.18),transparent 37%),radial-gradient(ellipse at 94% 100%,rgba(100,103,148,.09),transparent 42%),linear-gradient(120deg,#111116 0%,#15141c 58%,#101216 100%);border-color:#292731;box-shadow:0 25px 75px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.035)}
+.mm-app.theme-dark .welcome-copy h2,.mm-app.theme-dark .welcome-copy p{color:#f0f0f4}
+.mm-app.theme-dark .welcome-copy h2 em{color:#c1b6ff}
+.mm-app.theme-dark .welcome-pill{background:#211e30;border-color:#363047;color:#c9c0ff}
+.mm-app.theme-dark .welcome-button,.mm-app.theme-dark .primary-button,.mm-app.theme-dark .top-upload{background:linear-gradient(135deg,#d9d4ff,#9f92f4);color:#17151d;box-shadow:0 6px 23px rgba(148,130,245,.17),inset 0 1px rgba(255,255,255,.6)}
+.mm-app.theme-dark .welcome-button:hover,.mm-app.theme-dark .primary-button:hover,.mm-app.theme-dark .top-upload:hover{background:linear-gradient(135deg,#e9e5ff,#b5aaff);box-shadow:0 9px 27px rgba(148,130,245,.25)}
+.mm-app.theme-dark .theme-toggle,.mm-app.theme-dark .install-app-button{background:#14151a;border-color:#2b2c34;color:#d0d0dc}
+.mm-app.theme-dark .theme-toggle:hover,.mm-app.theme-dark .install-app-button:hover,.mm-app.theme-dark .icon-button:hover,.mm-app.theme-dark .view-toggle .view-active{background:#242136;border-color:#46405f;color:#d4cdff}
+.mm-app.theme-dark .global-search input,.mm-app.theme-dark .subject-select select{color:#e7e7ed}
+.mm-app.theme-dark .global-search input::placeholder{color:#777986}
+.mm-app.theme-dark .global-search kbd{background:#15161a;border-color:#2d2e36;color:#a6a6b2}
+.mm-app.theme-dark .note-cover{filter:brightness(.66) saturate(.72)}
+.mm-app.theme-dark .note-tags span{background:#22232a}
+.mm-app.theme-dark .note-tags .sample-tag{background:#28243a;color:#c5baff}
+.mm-app.theme-dark .action-menu button{color:#dedee7}
+.mm-app.theme-dark .action-menu button:hover{background:#25252d}
+.mm-app.theme-dark .drop-zone{background:#0f1014;border-color:#3a3946}
+.mm-app.theme-dark .drop-zone-active{background:#1b1929;border-color:#7868c8}
+.mm-app.theme-dark .drop-icon,.mm-app.theme-dark .auto-organize-icon{background:#242137;color:#c5baff}
+.mm-app.theme-dark .auto-organize-toggle{background:#14151a;border-color:#2d2b38}
+.mm-app.theme-dark .toggle-track{background:#41414a}
+.mm-app.theme-dark .toggle-track.toggle-on{background:#8e80e8}
+.mm-app.theme-dark .hint-icon,.mm-app.theme-dark .whatsapp-mark{background:#1d2420;color:#a9d6b4}
+.mm-app.theme-dark .subject-select select,.mm-app.theme-dark .view-toggle{border-color:#2b2c34}
+.mm-app.theme-dark .modal-scrim{background:rgba(0,0,0,.78)}
+.mm-app.theme-dark .text-button{color:#c5baff}
+.mm-app.theme-dark .toast{background:#eeecff;color:#272333}
+.mm-app.theme-dark .toast svg{color:#6653c9}
+.mm-app.theme-dark .study-aside-icon,.mm-app.theme-dark .chat-bot-icon,.mm-app.theme-dark .message-avatar{background:#242137;color:#c5baff}
+.mm-app.theme-dark .study-aside h2,.mm-app.theme-dark .chat-panel-head strong,.mm-app.theme-dark .study-aside>button b{color:#ededf3}
+.mm-app.theme-dark .study-aside>p,.mm-app.theme-dark .study-aside>button small,.mm-app.theme-dark .chat-panel-head small,.mm-app.theme-dark .chat-disclaimer{color:#92939f}
+.mm-app.theme-dark .study-aside>button{border-color:#292a31;color:#bdb1ff}
+.mm-app.theme-dark .study-note-link{background:#15151d;color:#c5baff}
+.mm-app.theme-dark .study-note-link b{color:#e6e4ef}
+.mm-app.theme-dark .study-note-link small{color:#9d9da9}
+.mm-app.theme-dark .chat-panel-head{border-color:#292a31}
+.mm-app.theme-dark .message-bubble,.mm-app.theme-dark .typing-dots{background:#1b1c22;color:#e4e4ec}
+.mm-app.theme-dark .user-message .message-bubble{background:#3a3358;color:#f2efff}
+.mm-app.theme-dark .chat-composer{background:#131419;border-color:#30313b;box-shadow:0 6px 22px rgba(0,0,0,.18)}
+.mm-app.theme-dark .chat-composer textarea{color:#f1f1f5}
+.mm-app.theme-dark .chat-composer textarea::placeholder{color:#7f808c}
+.mm-app.theme-dark .composer-footer>span{color:#9495a1}
+.mm-app.theme-dark .composer-footer>button{background:#d6d0ff;color:#17151e}
+.mm-app.theme-dark .ai-status{background:#131419;border-color:#2b2c34;color:#a5a5b1}
+.mm-app.theme-dark .personal-learning-badge{background:#191822;border-color:#343143;color:#c5baff}
+.mm-app.theme-dark .personal-path-card{background:rgba(17,18,22,.95);border-color:#292a31;color:#f0f0f4}
+.mm-app.theme-dark .personal-path-card:hover{border-color:#51496a;box-shadow:0 18px 38px rgba(0,0,0,.34)}
+.mm-app.theme-dark .personal-path-glyph,.mm-app.theme-dark .personal-mission-icon{background:#242137;color:#c5baff}
+.mm-app.theme-dark .personal-path-label,.mm-app.theme-dark .personal-mission-copy .section-kicker{color:#9694a8}
+.mm-app.theme-dark .personal-path-action,.mm-app.theme-dark .personal-runway-note strong{color:#c5baff}
+.mm-app.theme-dark .personal-mission{background:linear-gradient(105deg,#14151a,#111216);border-color:#292a31}
+.mm-app.theme-dark .personal-milestones span{background:#14151a;border-color:#292a31;color:#a5a5b0}
+.mm-app.theme-dark .personal-milestones b{color:#c5baff}
+.mm-app.theme-dark .page-footer .privacy-dot{background:#9a8cf0}
+@media(prefers-reduced-motion:reduce){.mm-app.theme-dark .personal-path-card{transition:none}}
+
+/* Document actions and study modes. */
+.mm-app .note-study-actions{display:flex;gap:6px;margin:10px 0 9px}
+.mm-app .note-study-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;flex:1;padding:7px 5px;border:1px solid #dfe6dc;border-radius:8px;background:rgba(247,249,244,.9);color:#496e56;font-size:8.5px;font-weight:800;white-space:nowrap}
+.mm-app .note-study-actions button:hover{background:#e9efe5;border-color:#bccfba}
+.mm-app .study-mode-picker{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:9px 13px;background:#f8f8fb;border-bottom:1px solid #efedf3}
+.mm-app .study-mode-picker>span{font-size:8px;font-weight:800;letter-spacing:1px;color:#9b99a7;margin:0 5px 0 2px}
+.mm-app .study-mode-picker button{padding:7px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:#757381;font-size:9px;font-weight:700}
+.mm-app .study-mode-picker button:hover{background:#efedf8;color:#544787}
+.mm-app .study-mode-picker button.mode-active{background:#ece8ff;border-color:#ded7ff;color:#5944be}
+.mm-app .active-document-pill{display:flex;align-items:center;gap:8px;min-width:0;padding:9px 14px;background:#f8f7fc;border-bottom:1px solid #efedf3;color:#7c6ad3;font-size:9px}
+.mm-app .active-document-pill>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.mm-app .active-document-pill strong{color:#504879}
+.mm-app .active-document-pill button{border:0;border-radius:6px;background:transparent;color:#9b99a7;font-size:18px;line-height:1;padding:1px 6px}
+.mm-app .active-document-pill button:hover{background:#ebe7fb;color:#5c49bd}
+.mm-app.theme-dark .note-study-actions button{background:#1b1a22;border-color:#33313e;color:#c8bfff}
+.mm-app.theme-dark .note-study-actions button:hover{background:#28243a;border-color:#4c4565}
+.mm-app.theme-dark .study-mode-picker{background:#101115;border-color:#282930}
+.mm-app.theme-dark .study-mode-picker>span{color:#858692}
+.mm-app.theme-dark .study-mode-picker button{color:#a5a5b1}
+.mm-app.theme-dark .study-mode-picker button:hover{background:#201e2b;color:#d2caff}
+.mm-app.theme-dark .study-mode-picker button.mode-active{background:#29243e;border-color:#46405c;color:#d6cfff}
+.mm-app.theme-dark .active-document-pill{background:#14141a;border-color:#292a31;color:#c0b5ff}
+.mm-app.theme-dark .active-document-pill strong{color:#eeebff}
+.mm-app.theme-dark .active-document-pill button{color:#9e9dab}
+@media(max-width:650px){.mm-app .note-study-actions button{font-size:8px;padding:7px 3px;gap:3px}.mm-app .study-mode-picker{gap:3px;padding:8px}.mm-app .study-mode-picker button{padding:7px 8px;font-size:8.5px}}
