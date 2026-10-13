@@ -360,6 +360,7 @@ export default function MechaMindApp() {
   const [searchIndex, setSearchIndex] = useState<Record<string, string>>({});
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'course' | 'progress'>('recent');
   const [fileTypeFilter, setFileTypeFilter] = useState('All types');
+  const [tagFilter, setTagFilter] = useState('All tags');
   const [courseFilter, setCourseFilter] = useState('All courses');
   const [lastReadNoteId, setLastReadNoteId] = useState(() => { try { return localStorage.getItem('mechamind-last-reader') || ''; } catch { return ''; } });
   const [readProgress, setReadProgress] = useState<Record<string, ReadRecord>>(() => { try { return JSON.parse(localStorage.getItem('mechamind-read-progress-v1') || '{}') as Record<string, ReadRecord>; } catch { return {}; } });
@@ -480,6 +481,7 @@ export default function MechaMindApp() {
   }, [toast]);
 
   const courseOptions = useMemo(() => ['All courses', ...Array.from(new Set(notes.map(note => note.course).filter(course => course && course !== 'Unsorted'))).sort((a, b) => a.localeCompare(b))], [notes]);
+  const tagOptions = useMemo(() => ['All tags', ...Array.from(new Set(notes.flatMap(note => note.tags).filter(Boolean))).sort((a, b) => a.localeCompare(b))], [notes]);
   const filteredNotes = useMemo(() => {
     const term = query.trim().toLowerCase();
     const result = notes.filter(note => {
@@ -487,9 +489,10 @@ export default function MechaMindApp() {
       const matchesSubject = subject === 'All subjects' || note.subject === subject;
       const matchesCourse = courseFilter === 'All courses' || note.course === courseFilter;
       const matchesType = fileTypeFilter === 'All types' || note.kind === fileTypeFilter;
+      const matchesTag = tagFilter === 'All tags' || note.tags.includes(tagFilter);
       const searchBlob = [note.name, note.subject, note.course, ...note.tags, searchIndex[note.id] || ''].join(' ').toLowerCase();
       const matchesQuery = !term || searchBlob.includes(term);
-      return matchesPage && matchesSubject && matchesCourse && matchesType && matchesQuery;
+      return matchesPage && matchesSubject && matchesCourse && matchesType && matchesTag && matchesQuery;
     });
     return result.sort((a, b) => {
       if (page === 'Course' && sortBy === 'recent') return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
@@ -498,7 +501,7 @@ export default function MechaMindApp() {
       if (sortBy === 'progress') return (readProgress[b.id]?.ratio ?? 0) - (readProgress[a.id]?.ratio ?? 0) || b.createdAt.localeCompare(a.createdAt);
       return b.createdAt.localeCompare(a.createdAt);
     });
-  }, [notes, page, subject, courseFilter, fileTypeFilter, query, searchIndex, sortBy, readProgress]);
+  }, [notes, page, subject, courseFilter, fileTypeFilter, tagFilter, query, searchIndex, sortBy, readProgress]);
   const readerNote = notes.find(note => note.id === readerNoteId) ?? null;
   const continueNote = notes.find(note => note.id === lastReadNoteId && !note.sample)
     ?? notes.filter(note => !note.sample).sort((a, b) => (readProgress[b.id]?.updatedAt || b.createdAt).localeCompare(readProgress[a.id]?.updatedAt || a.createdAt))[0]
@@ -547,6 +550,7 @@ export default function MechaMindApp() {
       setNotes(current => [...added, ...current.filter(n => !n.sample)]);
       setSubject('All subjects');
       setCourseFilter('All courses');
+      setTagFilter('All tags');
       setPage('My library');
       setUploadOpen(false);
       notify(added.length + (added.length === 1 ? ' file saved.' : ' files saved.') + (failed ? ' ' + failed + ' file(s) could not be saved; try a smaller file or free some browser storage.' : ' Text is ready for search where extraction succeeded.'));
@@ -885,7 +889,7 @@ export default function MechaMindApp() {
     else notify('If your browser supports installation, open its menu and choose Install app or Add to Home screen.');
   }
 
-  function choosePage(next: Page) { setPage(next); setMobileNav(false); setSubject('All subjects'); setCourseFilter('All courses'); setFileTypeFilter('All types'); }
+  function choosePage(next: Page) { setPage(next); setMobileNav(false); setSubject('All subjects'); setCourseFilter('All courses'); setFileTypeFilter('All types'); setTagFilter('All tags'); }
   function openCourse(course: string) { setCourseFilter(course); setSubject('All subjects'); setFileTypeFilter('All types'); setPage('Course'); setMobileNav(false); }
   function startPersonalStudy(prompt: string) {
     setChatInput(prompt);
@@ -989,8 +993,8 @@ export default function MechaMindApp() {
               {!notes.some(note => !note.sample && note.course && note.course !== 'Unsorted') && <div className="course-shelf-empty"><p>Courses appear here as you import lectures with course codes.</p><button type="button" onClick={() => setUploadOpen(true)}>Add a course file</button></div>}
             </div>
           </section>}
-          <section className="library-section"><div className="section-heading"><div><h2>{page === 'Starred' ? 'Saved for later' : page === 'Course' ? courseFilter : page === 'My library' ? 'All your notes' : 'Recently added'} <span>{filteredNotes.length}</span></h2><p>{page === 'Course' ? 'Lectures in this course, ordered for quick revision.' : 'Search your material, then filter it down.'}</p></div><div className="library-tools"><label className="subject-select"><select aria-label="Filter by subject" value={subject} onChange={e => setSubject(e.target.value)}>{subjects.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={15} /></label><label className="subject-select"><select aria-label="Filter by course" value={courseFilter} onChange={e => setCourseFilter(e.target.value)}>{courseOptions.map(course => <option key={course}>{course}</option>)}</select><ChevronDown size={15} /></label><label className="subject-select"><select aria-label="Filter by file type" value={fileTypeFilter} onChange={e => setFileTypeFilter(e.target.value)}>{['All types', 'PDF', 'Document', 'Slides', 'Image', 'Audio', 'Video', 'Spreadsheet'].map(kind => <option key={kind}>{kind}</option>)}</select><ChevronDown size={15} /></label><label className="subject-select"><select aria-label="Sort notes" value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}><option value="recent">Recently added</option><option value="name">Name A–Z</option><option value="course">Course</option><option value="progress">Progress</option></select><ChevronDown size={15} /></label><div className="view-toggle"><button aria-label="Grid view" className={view === 'grid' ? 'view-active' : ''} onClick={() => setView('grid')}><Grid2X2 size={16} /></button><button aria-label="List view" className={view === 'list' ? 'view-active' : ''} onClick={() => setView('list')}><List size={17} /></button></div></div></div>
-            {filteredNotes.length ? <div className={'notes-grid ' + (view === 'list' ? 'list-view' : '')}>{filteredNotes.map(note => <NoteCard key={note.id} note={note} />)}</div> : <div className="empty-state"><div className="empty-icon"><FolderOpen size={25} /></div><h3>{query || courseFilter !== 'All courses' || fileTypeFilter !== 'All types' ? 'No matching notes' : 'Your library is ready'}</h3><p>{query || courseFilter !== 'All courses' || fileTypeFilter !== 'All types' ? 'Try another search or clear a filter.' : 'Import your lecture files to make this space your own.'}</p><button className="primary-button" onClick={() => query || courseFilter !== 'All courses' || fileTypeFilter !== 'All types' ? (setQuery(''), setCourseFilter('All courses'), setFileTypeFilter('All types'), setSubject('All subjects')) : setUploadOpen(true)}><Plus size={16} /> {query || courseFilter !== 'All courses' || fileTypeFilter !== 'All types' ? 'Clear filters' : 'Upload notes'}</button></div>}
+          <section className="library-section"><div className="section-heading"><div><h2>{page === 'Starred' ? 'Saved for later' : page === 'Course' ? courseFilter : page === 'My library' ? 'All your notes' : 'Recently added'} <span>{filteredNotes.length}</span></h2><p>{page === 'Course' ? 'Lectures in this course, ordered for quick revision.' : 'Search your material, then filter it down.'}</p></div><div className="library-tools"><label className="subject-select"><select aria-label="Filter by subject" value={subject} onChange={e => setSubject(e.target.value)}>{subjects.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={15} /></label><label className="subject-select"><select aria-label="Filter by course" value={courseFilter} onChange={e => setCourseFilter(e.target.value)}>{courseOptions.map(course => <option key={course}>{course}</option>)}</select><ChevronDown size={15} /></label><label className="subject-select"><select aria-label="Filter by file type" value={fileTypeFilter} onChange={e => setFileTypeFilter(e.target.value)}>{['All types', 'PDF', 'Document', 'Slides', 'Image', 'Audio', 'Video', 'Spreadsheet'].map(kind => <option key={kind}>{kind}</option>)}</select><ChevronDown size={15} /></label><label className="subject-select"><select aria-label="Filter by tag" value={tagFilter} onChange={e => setTagFilter(e.target.value)}>{tagOptions.map(tag => <option key={tag}>{tag}</option>)}</select><ChevronDown size={15} /></label><label className="subject-select"><select aria-label="Sort notes" value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}><option value="recent">Recently added</option><option value="name">Name A–Z</option><option value="course">Course</option><option value="progress">Progress</option></select><ChevronDown size={15} /></label><div className="view-toggle"><button aria-label="Grid view" className={view === 'grid' ? 'view-active' : ''} onClick={() => setView('grid')}><Grid2X2 size={16} /></button><button aria-label="List view" className={view === 'list' ? 'view-active' : ''} onClick={() => setView('list')}><List size={17} /></button></div></div></div>
+            {filteredNotes.length ? <div className={'notes-grid ' + (view === 'list' ? 'list-view' : '')}>{filteredNotes.map(note => <NoteCard key={note.id} note={note} />)}</div> : <div className="empty-state"><div className="empty-icon"><FolderOpen size={25} /></div><h3>{query || courseFilter !== 'All courses' || fileTypeFilter !== 'All types' || tagFilter !== 'All tags' ? 'No matching notes' : 'Your library is ready'}</h3><p>{query || courseFilter !== 'All courses' || fileTypeFilter !== 'All types' || tagFilter !== 'All tags' ? 'Try another search or clear a filter.' : 'Import your lecture files to make this space your own.'}</p><button className="primary-button" onClick={() => query || courseFilter !== 'All courses' || fileTypeFilter !== 'All types' || tagFilter !== 'All tags' ? (setQuery(''), setCourseFilter('All courses'), setFileTypeFilter('All types'), setTagFilter('All tags'), setSubject('All subjects')) : setUploadOpen(true)}><Plus size={16} /> {query || courseFilter !== 'All courses' || fileTypeFilter !== 'All types' || tagFilter !== 'All tags' ? 'Clear filters' : 'Upload notes'}</button></div>}
           </section>
           {page === 'Overview' && <section className="whatsapp-tip"><div className="whatsapp-mark"><MessageCircle size={21} /></div><div><strong>Notes arriving through WhatsApp?</strong><p>Open the lecture in WhatsApp, save or share the attachment to your device, then import it here. Direct WhatsApp linking is a future upgrade.</p></div><button onClick={() => setUploadOpen(true)}>Import a file <ArrowRight size={15} /></button></section>}
         </> : page === 'Reader' ? <section className="reader-page">
