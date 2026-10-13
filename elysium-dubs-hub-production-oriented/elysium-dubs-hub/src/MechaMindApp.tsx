@@ -7,12 +7,14 @@ import {
   Download, Moon, Plus, Search, Send, Settings2, Sparkles, Star, Sun, Trash2, UploadCloud, X, Zap
 } from 'lucide-react';
 import { backendConfigured, friendlyError, supabase } from './lib/supabase';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 type Note = {
   id: string; name: string; subject: string; course: string; kind: string;
   size: number; createdAt: string; starred: boolean; tags: string[];
-  storageKey?: string; sample?: boolean;
+  storageKey?: string; sample?: boolean; fileName?: string;
 };
+type StudyMode = 'explain' | 'notes' | 'analyze' | 'quiz' | 'plan';
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }> };
 type Page = 'Overview' | 'My library' | 'Starred' | 'AI study desk';
@@ -146,8 +148,32 @@ function inferNoteMetadata(fileName: string, content = '') {
 }
 async function readableText(file: File): Promise<string> {
   const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const maxChars = 30000;
   if (['txt', 'md', 'csv', 'json', 'html', 'xml', 'rtf'].includes(extension) || file.type.startsWith('text/')) {
-    return (await file.text()).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 5000);
+    return (await file.text()).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, maxChars);
+  }
+  if (extension === 'pdf' || file.type === 'application/pdf') {
+    const pdfjs = await import('pdfjs-dist');
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+    const document = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const pages: string[] = [];
+    try {
+      const pageCount = Math.min(document.numPages, 45);
+      for (let pageNo = 1; pageNo <= pageCount; pageNo++) {
+        const page = await document.getPage(pageNo);
+        const pageText = await page.getTextContent();
+        pages.push(pageText.items.map(item => ('str' in item ? item.str : '')).join(' '));
+        if (pages.join('\n').length >= maxChars) break;
+      }
+      return pages.join('\n').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').slice(0, maxChars).trim();
+    } finally {
+      await document.destroy();
+    }
+  }
+  if (extension === 'docx' || file.type.includes('wordprocessingml')) {
+    const mammoth = await import('mammoth');
+    const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+    return result.value.replace(/\s{3,}/g, '\n\n').slice(0, maxChars).trim();
   }
   return '';
 }
@@ -185,6 +211,32 @@ function localStudyReply(prompt: string): string {
   if (/newton|force|acceleration/.test(p)) return "Start with Newton’s second law: F = ma. F is the net force in newtons, m is mass in kilograms and a is acceleration in m/s². Rearrange to a = F/m. Example: a 12 N net force on a 3 kg object gives a = 12/3 = 4 m/s².\n\nMini-quiz: what acceleration does a 20 N net force produce on a 5 kg object?";
   if (/vector|scalar/.test(p)) return "A scalar has magnitude only, such as mass or temperature. A vector has magnitude and direction, such as force or displacement. For A = (a₁, a₂) and B = (b₁, b₂), the dot product is A · B = a₁b₁ + a₂b₂, which is a scalar.\n\nWould you like to try a worked example?";
   return "Let us break this down together. First, identify the key terms and what the question is asking. Next, connect the idea to a principle or equation, then work through a small example. I’ll keep the reasoning visible and add a quick check question. For a precise explanation of your lecture, import the file into your MechaMind library or paste the relevant excerpt here. Live AI answers need the secure AI service connected.";
+}
+
+function localDocumentStudy(documentText: string, documentName: string, mode: StudyMode): string {
+  const clean = documentText.replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  const lines = clean.split(/\n|(?<=[.!?])\s+/).map(line => line.trim()).filter(line => line.length > 22);
+  const sentences = clean.split(/(?<=[.!?])\s+/).map(line => line.trim()).filter(line => line.length > 28);
+  const formulaPattern = /[^\n]{0,55}(?:=|→|⇌|∫|∑|∇|√|Δ|±|≤|≥|\b(?:equation|formula|theorem|law)\b)[^\n]{0,75}/gi;
+  const formulaMatches = clean.match(formulaPattern) ?? [];
+  const formulas = [...new Set(formulaMatches.map(item => item.replace(/\s+/g, ' ').trim()).filter(item => item.length > 5))].slice(0, 8);
+  const wordCounts = new Map<string, number>();
+  const stopWords = new Set("about after again against all also among and are because been before being between both but can could did does each either else for from further had has have her here him his how into its just more most much must not other our out over own same should some such than that the their them then there these they this those through too under until very was were what when where which while who will with would your you".split(" "));
+  for (const match of clean.toLowerCase().matchAll(/[a-z][a-z-]{3,}/g)) {
+    const word = match[0];
+    if (!stopWords.has(word)) wordCounts.set(word, (wordCounts.get(word) ?? 0) + 1);
+  }
+  const keyTerms = [...wordCounts.entries()].sort((x, y) => y[1] - x[1]).slice(0, 9).map(([word, count]) => word + " (" + count + " mentions)");
+  const summary = (sentences.length ? sentences : lines).slice(0, 6);
+  const summaryLines = summary.map((line, index) => (index + 1) + ". " + line);
+  const name = documentName || 'Uploaded lecture';
+  if (mode === 'notes') {
+    return "# Quick revision notes: " + name + "\n\n**Source:** text extracted from your uploaded file.\n\n## Overview\n" + (summaryLines.length ? summaryLines.join('\n') : 'There is too little readable text to form a summary.') + "\n\n## Repeated key terms\n" + (keyTerms.length ? keyTerms.map(term => "- " + term).join('\n') : '- No clear repeated terms were detected.') + "\n\n## Equations and important statements\n" + (formulas.length ? formulas.map((formula, i) => (i + 1) + ". " + formula).join('\n') : 'No obvious equations or formula statements were detected by the quick local scan.') + "\n\n## Test yourself\n1. What is the central idea of this lecture?\n2. Define two of the repeated key terms in your own words.\n3. Explain one equation or important statement and when it applies.\n4. Write a short example that demonstrates the main concept.\n\n**Note:** This is a fast, on-device draft based on text patterns, not a full AI interpretation. Select the live AI service for a deeper, course-aware set of notes.";
+  }
+  if (mode === 'analyze') {
+    return "# Quick note analysis: " + name + "\n\n## At a glance\n- Readable text: approximately " + clean.length.toLocaleString() + " characters.\n- Paragraphs/lines detected: " + lines.length + ".\n- Repeated concepts detected: " + (keyTerms.slice(0, 6).map(item => item.split(' (')[0]).join(', ') || 'not enough data') + ".\n\n## Main ideas surfaced\n" + (summaryLines.length ? summaryLines.join('\n') : 'There is too little readable text to summarise.') + "\n\n## Key terms\n" + (keyTerms.length ? keyTerms.map(term => "- " + term).join('\n') : '- No clear key terms detected.') + "\n\n## Equations and statements to review\n" + (formulas.length ? formulas.map((formula, i) => (i + 1) + ". " + formula).join('\n') : 'No obvious equations were found. If the lecture is image-based or scanned, its text may not be extractable.') + "\n\n## Questions worth asking\n1. Which concept appears most often, and why is it important?\n2. Which assumptions or definitions are needed before applying the key equations?\n3. Can you find a worked example in the note and reproduce it without looking?\n4. Is any definition, step or conclusion left unexplained?\n\n**Limit:** This is a local pattern-based scan. It can identify repeated terms and equation-like lines, but cannot reliably judge whether a claim is correct. Use the connected AI tutor for deeper reasoning and error checks.";
+  }
+  return localStudyReply("Please help me study " + name);
 }
 
 function NeuralCanvas({ darkMode }: { darkMode: boolean }) {
@@ -257,12 +309,15 @@ export default function MechaMindApp() {
   const [dragging, setDragging] = useState(false);
   const [autoOrganize, setAutoOrganize] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
-    try { return localStorage.getItem('mechamind-theme') === 'dark'; } catch { return false; }
+    try { const savedTheme = localStorage.getItem('mechamind-theme'); return savedTheme ? savedTheme === 'dark' : true; } catch { return true; }
   });
   const [menuNote, setMenuNote] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
+  const [studyMode, setStudyMode] = useState<StudyMode>('explain');
+  const [activeDocumentText, setActiveDocumentText] = useState('');
+  const [activeDocumentName, setActiveDocumentName] = useState('');
   const [chat, setChat] = useState<ChatMessage[]>([{ role: 'assistant', content: chatWelcome }]);
   const [mobileNav, setMobileNav] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -329,7 +384,10 @@ export default function MechaMindApp() {
       const id = crypto.randomUUID();
       try { await vaultPut(id, file); }
       catch { notify('Browser storage could not save that file. Try a smaller file or check available storage.'); continue; }
-      const extractedText = autoOrganize ? await readableText(file).catch(() => '') : '';
+      const extractedText = await readableText(file).catch(() => '');
+      if (extractedText.trim()) {
+        try { await vaultPut('text-' + id, new Blob([extractedText], { type: 'text/plain' })); } catch { /* Original file remains saved if the text cache cannot be written. */ }
+      }
       const guessed = autoOrganize ? inferNoteMetadata(file.name, extractedText) : {
         name: file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim() || file.name,
         subject: 'Other', course: 'Unsorted', tags: ['new import']
@@ -339,7 +397,7 @@ export default function MechaMindApp() {
       added.push({
         id, name: metadata.name || guessed.name, subject: metadata.subject || 'Other', course: metadata.course || 'Unsorted',
         kind: fileKind(file.name), size: file.size, createdAt: new Date().toISOString(),
-        starred: false, tags: metadata.tags?.length ? metadata.tags : ['lecture'], storageKey: id
+        starred: false, tags: metadata.tags?.length ? metadata.tags : ['lecture'], storageKey: id, fileName: file.name
       });
     }
     if (added.length) {
@@ -347,7 +405,7 @@ export default function MechaMindApp() {
       setSubject('All subjects');
       setPage('My library');
       setUploadOpen(false);
-      notify(added.length + (added.length === 1 ? ' file added and organised.' : ' files added and organised.') + (autoOrganize ? ' Text files are analysed; other files use filename clues.' : ''));
+      notify(added.length + (added.length === 1 ? ' file added and organised.' : ' files added and organised.') + ' PDF, DOCX and text extraction is ready where the file contains selectable text. Scanned PDFs may need OCR.');
     }
   }
   async function downloadNote(note: Note) {
@@ -363,7 +421,7 @@ export default function MechaMindApp() {
     notify('Your file is ready.');
   }
   async function deleteNote(note: Note) {
-    if (note.storageKey) await vaultDelete(note.storageKey);
+    if (note.storageKey) { await vaultDelete(note.storageKey); await vaultDelete('text-' + note.storageKey); }
     setNotes(current => current.filter(n => n.id !== note.id));
     setMenuNote(null);
     notify('Note removed from your library.');
@@ -372,11 +430,15 @@ export default function MechaMindApp() {
     setNotes(current => current.map(n => n.id === note.id ? { ...n, starred: !n.starred } : n));
     setMenuNote(null);
   }
-  async function sendQuestion(event: FormEvent) {
-    event.preventDefault();
-    const prompt = chatInput.trim();
-    if (!prompt || chatBusy) return;
-    const next = [...chat, { role: 'user' as const, content: prompt }];
+  async function runTutorPrompt(
+    prompt: string,
+    mode: StudyMode = studyMode,
+    documentText: string = activeDocumentText,
+    documentName: string = activeDocumentName,
+    startingChat: ChatMessage[] = chat
+  ) {
+    if (!prompt.trim() || chatBusy) return;
+    const next: ChatMessage[] = [...startingChat, { role: 'user', content: prompt.trim() }];
     setChat(next);
     setChatInput('');
     setChatBusy(true);
@@ -385,22 +447,89 @@ export default function MechaMindApp() {
         const { data: sessionData } = await supabase.auth.getSession();
         if (sessionData.session) {
           const { data, error } = await supabase.functions.invoke('ai-tutor', {
-            body: { mode: 'explain', messages: [{ role: 'assistant', content: personalTutorContext }, ...next.slice(-15).map(m => ({ role: m.role, content: m.content }))] }
+            body: {
+              mode,
+              documentName: documentName || undefined,
+              documentText: documentText ? documentText.slice(0, 30000) : undefined,
+              messages: [{ role: 'assistant', content: personalTutorContext }, ...next.slice(-14).map(m => ({ role: m.role, content: m.content.slice(-4000) }))]
+            }
           });
           if (error || !data?.reply) throw new Error(data?.error ?? friendlyError(error));
           setChat([...next, { role: 'assistant', content: data.reply }]);
         } else {
-          setChat([...next, { role: 'assistant', content: 'Your notes stay available locally. To use the connected AI service, sign in to the configured study account. For now, try a built-in example or paste the exact concept you want to understand.' }]);
+          const fallback = documentText
+            ? localDocumentStudy(documentText, documentName, mode) + '\n\n**Live AI note:** Sign in to the configured study account for a deeper AI-powered analysis.'
+            : 'Your notes stay available locally. Sign in to the configured study account to use live AI. The built-in study preview can still help with common concepts.';
+          setChat([...next, { role: 'assistant', content: fallback }]);
         }
       } else {
-        await new Promise(resolve => window.setTimeout(resolve, 350));
-        setChat([...next, { role: 'assistant', content: localStudyReply(prompt) }]);
+        await new Promise(resolve => window.setTimeout(resolve, 220));
+        setChat([...next, { role: 'assistant', content: documentText ? localDocumentStudy(documentText, documentName, mode) : localStudyReply(prompt) }]);
       }
     } catch (error) {
-      setChat([...next, { role: 'assistant', content: 'I could not reach the live AI service. Your library is still working locally. ' + friendlyError(error) }]);
+      const fallback = documentText
+        ? 'The live AI service is unavailable, so here is a quick local pass instead.\n\n' + localDocumentStudy(documentText, documentName, mode) + '\n\nFor deeper AI reasoning, check the tutor service connection.'
+        : 'I could not reach the live AI service. Your library is still working locally. ' + friendlyError(error);
+      setChat([...next, { role: 'assistant', content: fallback }]);
     } finally {
       setChatBusy(false);
     }
+  }
+
+  async function sendQuestion(event: FormEvent) {
+    event.preventDefault();
+    const prompt = chatInput.trim();
+    if (!prompt || chatBusy) return;
+    await runTutorPrompt(prompt, studyMode, activeDocumentText, activeDocumentName, chat);
+  }
+
+  async function openNoteForStudy(note: Note, mode: 'notes' | 'analyze') {
+    if (note.sample || !note.storageKey) {
+      notify('That card is a preview. Import the actual lecture PDF or document to generate notes from its contents.');
+      setUploadOpen(true);
+      return;
+    }
+    setPage('AI study desk');
+    setStudyMode(mode);
+    setMobileNav(false);
+    setActiveDocumentName(note.name);
+    setActiveDocumentText('');
+    setChat([{ role: 'assistant', content: 'Opening ' + note.name + ' and extracting readable text from your saved file…' }]);
+    setChatBusy(true);
+    let documentText = '';
+    try {
+      const cachedText = await vaultGet('text-' + note.storageKey);
+      if (cachedText) documentText = await cachedText.text();
+      if (!documentText.trim()) {
+        const sourceBlob = await vaultGet(note.storageKey);
+        if (!sourceBlob) throw new Error('The original file is missing from this browser storage.');
+        const inferredName = note.fileName ?? (note.kind === 'PDF' ? note.name + '.pdf' : note.name + '.docx');
+        const sourceFile = new File([sourceBlob], inferredName, { type: sourceBlob.type });
+        documentText = await readableText(sourceFile);
+      }
+      if (documentText.trim().length < 80) {
+        const warning = 'I could not extract enough readable text from this file. It may be a scanned/image-only PDF or an unsupported file format. Try a text-based PDF, DOCX or TXT file. OCR for scanned pages is not enabled yet.';
+        setActiveDocumentText('');
+        setChat([{ role: 'assistant', content: warning }]);
+        notify('Not enough selectable text was found in that file.');
+        return;
+      }
+      documentText = documentText.slice(0, 30000);
+      setActiveDocumentText(documentText);
+    } catch (error) {
+      setActiveDocumentText('');
+      setChat([{ role: 'assistant', content: 'I could not open that note from this browser. ' + friendlyError(error) }]);
+      notify('Could not read that saved file.');
+      return;
+    } finally {
+      setChatBusy(false);
+    }
+    const initialChat: ChatMessage[] = [{ role: 'assistant', content: 'Loaded ' + note.name + '. I’ll ground this session in the readable text extracted from your file.' }];
+    setChat(initialChat);
+    const prompt = mode === 'notes'
+      ? 'Generate clear, well-structured revision notes from the uploaded lecture "' + note.name + '". Preserve the lecturer’s terminology; organise by headings; explain concepts step by step; include formulas, definitions, worked examples where the source supports them, a concise recap, and a short self-test with answers. Flag unclear or potentially mistaken source statements rather than silently rewriting them.'
+      : 'Analyse my uploaded lecture "' + note.name + '". Give me an executive summary, topic map, essential definitions, formulas and assumptions, the most important takeaways, gaps or ambiguous statements to revisit, likely exam-style questions with model answers, and a prioritised revision plan. Ground claims in the source and distinguish actual source content from your own explanatory clarifications.';
+    await runTutorPrompt(prompt, mode, documentText, note.name, initialChat);
   }
 
   const pageTitle = page === 'Overview' ? "David's engineering cockpit" : page === 'My library' ? 'My library' : page === 'Starred' ? 'Starred notes' : 'AI study desk';
@@ -430,6 +559,9 @@ export default function MechaMindApp() {
   function choosePage(next: Page) { setPage(next); setMobileNav(false); setSubject('All subjects'); }
   function startPersonalStudy(prompt: string) {
     setChatInput(prompt);
+    setActiveDocumentText('');
+    setActiveDocumentName('');
+    setStudyMode('explain');
     setPage('AI study desk');
     setMobileNav(false);
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -445,6 +577,7 @@ export default function MechaMindApp() {
         <div className="note-meta"><span>{note.subject}</span><span className="meta-dot">·</span><span>{new Date(note.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span></div>
         <h3>{note.name}</h3>
         <div className="note-tags">{note.tags.slice(0, 2).map(tag => <span key={tag}>{tag}</span>)}{note.sample && <span className="sample-tag">Sample</span>}</div>
+        <div className="note-study-actions"><button type="button" onClick={() => void openNoteForStudy(note, 'notes')}><FileText size={13} /> Make notes</button><button type="button" onClick={() => void openNoteForStudy(note, 'analyze')}><BrainCircuit size={13} /> Analyse</button></div>
         <div className="note-card-footer"><span><HardDrive size={13} /> {formatSize(note.size)}</span><div className="note-actions"><button className="icon-button" aria-label="Download note" onClick={() => void downloadNote(note)}><ArrowDownToLine size={16} /></button><div className="more-wrap"><button className="icon-button" aria-label="More note actions" onClick={() => setMenuNote(menuNote === note.id ? null : note.id)}><MoreHorizontal size={17} /></button>{menuNote === note.id && <div className="action-menu"><button onClick={() => toggleStar(note)}><Star size={14} /> {note.starred ? 'Remove star' : 'Add star'}</button><button onClick={() => void downloadNote(note)}><ArrowDownToLine size={14} /> Download file</button><button className="danger-action" onClick={() => void deleteNote(note)}><Trash2 size={14} /> Remove note</button></div>}</div></div></div>
       </div>
     </article>;
@@ -515,7 +648,7 @@ export default function MechaMindApp() {
             {filteredNotes.length ? <div className={'notes-grid ' + (view === 'list' ? 'list-view' : '')}>{filteredNotes.map(note => <NoteCard key={note.id} note={note} />)}</div> : <div className="empty-state"><div className="empty-icon"><FolderOpen size={25} /></div><h3>No notes found</h3><p>Try another search or import a lecture file to start your collection.</p><button className="primary-button" onClick={() => setUploadOpen(true)}><Plus size={16} /> Add a note</button></div>}
           </section>
           {page === 'Overview' && <section className="whatsapp-tip"><div className="whatsapp-mark"><MessageCircle size={21} /></div><div><strong>Notes arriving through WhatsApp?</strong><p>Open the lecture in WhatsApp, save or share the attachment to your device, then import it here. Direct WhatsApp linking is a future upgrade.</p></div><button onClick={() => setUploadOpen(true)}>Import a file <ArrowRight size={15} /></button></section>}
-        </> : <section className="study-page"><div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> THINK IT THROUGH</div><h1>AI study desk<span className="heading-period">.</span></h1><p>One question can unlock a whole topic. Start anywhere.</p></div><div className="ai-status"><span /> {backendConfigured ? 'AI service configured' : 'Study preview'}</div></div><div className="study-layout"><aside className="study-aside"><div className="study-aside-icon"><BrainCircuit size={25} /></div><h2>Learn for understanding.</h2><p>Bring a question, a tricky formula or a concept you want to see from a different angle.</p><div className="study-divider" /><span className="section-kicker">YOUR NEXT STUDY MOVES</span><button onClick={() => setChatInput(personalStudyPaths[0].prompt)}><FileText size={16} /><span><b>CHM 101 deep dive</b><small>Balancing + stoichiometry</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[1].prompt)}><BrainCircuit size={16} /><span><b>Check the vector field</b><small>Curl, domain + circulation</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[2].prompt)}><Zap size={16} /><span><b>Derive motion equations</b><small>Start from v = u + at</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[3].prompt)}><BookOpen size={16} /><span><b>Map the Ligron path</b><small>Learning into real prototypes</small></span><ArrowRight size={15} /></button><div className="study-note-link"><BrainCircuit size={17} /><span><b>Your learning style</b><small>Step-by-step reasoning, worked calculations, diagrams where useful, and short quizzes that test understanding.</small></span></div></aside><div className="chat-panel"><div className="chat-panel-head"><div className="chat-bot-icon"><Sparkles size={18} /></div><div><strong>David's MechaMind companion</strong><small>Mechatronics · clear steps · real builds</small></div><button className="icon-button" onClick={() => setChat([{ role: 'assistant', content: chatWelcome }])}><MoreHorizontal size={18} /></button></div><div className="chat-messages">{chat.map((message, index) => <div key={index} className={'chat-message ' + (message.role === 'user' ? 'user-message' : '')}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={15} /> : 'D'}</div><div className="message-bubble">{message.content.split('\n').map((line, i) => <p key={i}>{line || '\u00a0'}</p>)}</div></div>)}{chatBusy && <div className="chat-message"><div className="message-avatar"><Sparkles size={15} /></div><div className="typing-dots"><i /><i /><i /></div></div>}<div ref={dropRef} /></div><form className="chat-composer" onSubmit={sendQuestion}><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ask anything you're learning..." rows={2} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendQuestion(e as unknown as FormEvent); } }} /><div className="composer-footer"><span><Sparkles size={13} /> Check the reasoning, not just the result</span><button type="submit" disabled={!chatInput.trim() || chatBusy} aria-label="Send message"><Send size={17} /></button></div></form><div className="chat-disclaimer">Preview answers are built in. Live AI requires a configured secure service and sign-in.</div></div></div></section>}
+        </> : <section className="study-page"><div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> THINK IT THROUGH</div><h1>AI study desk<span className="heading-period">.</span></h1><p>One question can unlock a whole topic. Start anywhere.</p></div><div className="ai-status"><span /> {backendConfigured ? 'AI service configured' : 'Study preview'}</div></div><div className="study-layout"><aside className="study-aside"><div className="study-aside-icon"><BrainCircuit size={25} /></div><h2>Learn for understanding.</h2><p>Bring a question, a tricky formula or a concept you want to see from a different angle.</p><div className="study-divider" /><span className="section-kicker">YOUR NEXT STUDY MOVES</span><button onClick={() => setChatInput(personalStudyPaths[0].prompt)}><FileText size={16} /><span><b>CHM 101 deep dive</b><small>Balancing + stoichiometry</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[1].prompt)}><BrainCircuit size={16} /><span><b>Check the vector field</b><small>Curl, domain + circulation</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[2].prompt)}><Zap size={16} /><span><b>Derive motion equations</b><small>Start from v = u + at</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[3].prompt)}><BookOpen size={16} /><span><b>Map the Ligron path</b><small>Learning into real prototypes</small></span><ArrowRight size={15} /></button><div className="study-note-link"><BrainCircuit size={17} /><span><b>Your learning style</b><small>Step-by-step reasoning, worked calculations, diagrams where useful, and short quizzes that test understanding.</small></span></div></aside><div className="chat-panel"><div className="chat-panel-head"><div className="chat-bot-icon"><Sparkles size={18} /></div><div><strong>David's MechaMind companion</strong><small>Mechatronics · clear steps · real builds</small></div><button className="icon-button" onClick={() => { setChat([{ role: 'assistant', content: chatWelcome }]); setActiveDocumentText(''); setActiveDocumentName(''); setStudyMode('explain'); }}><MoreHorizontal size={18} /></button></div><div className="study-mode-picker" role="group" aria-label="Choose study mode"><span>MODE</span><button className={studyMode === 'explain' ? 'mode-active' : ''} onClick={() => setStudyMode('explain')} type="button">Explain</button><button className={studyMode === 'notes' ? 'mode-active' : ''} onClick={() => setStudyMode('notes')} type="button">Make notes</button><button className={studyMode === 'analyze' ? 'mode-active' : ''} onClick={() => setStudyMode('analyze')} type="button">Analyse</button><button className={studyMode === 'quiz' ? 'mode-active' : ''} onClick={() => setStudyMode('quiz')} type="button">Quiz</button><button className={studyMode === 'plan' ? 'mode-active' : ''} onClick={() => setStudyMode('plan')} type="button">Study plan</button></div>{activeDocumentName && <div className="active-document-pill"><FileText size={14} /><span>Using note: <strong>{activeDocumentName}</strong></span><button type="button" aria-label="Stop using this note" onClick={() => { setActiveDocumentName(''); setActiveDocumentText(''); }}>×</button></div>}<div className="chat-messages">{chat.map((message, index) => <div key={index} className={'chat-message ' + (message.role === 'user' ? 'user-message' : '')}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={15} /> : 'D'}</div><div className="message-bubble">{message.content.split('\n').map((line, i) => <p key={i}>{line || '\u00a0'}</p>)}</div></div>)}{chatBusy && <div className="chat-message"><div className="message-avatar"><Sparkles size={15} /></div><div className="typing-dots"><i /><i /><i /></div></div>}<div ref={dropRef} /></div><form className="chat-composer" onSubmit={sendQuestion}><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={studyMode === 'notes' ? 'Paste lecture text or ask for structured notes…' : studyMode === 'analyze' ? 'Ask about a note, or analyse the attached file…' : studyMode === 'quiz' ? 'Choose a topic to be quizzed on…' : 'Ask anything you’re learning…'} rows={2} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendQuestion(e as unknown as FormEvent); } }} /><div className="composer-footer"><span><Sparkles size={13} /> Check the reasoning, not just the result</span><button type="submit" disabled={!chatInput.trim() || chatBusy} aria-label="Send message"><Send size={17} /></button></div></form><div className="chat-disclaimer">PDF, DOCX and text extraction runs in this browser. Extracted text is sent to the secure AI tutor only when you ask it to study a note; image-only scanned PDFs need OCR, which is not enabled yet.</div></div></div></section>}
           <footer className="page-footer"><span>Made for curious minds <span className="footer-spark">✳</span></span><span><span className="privacy-dot" /> Your files stay on this device in this version</span></footer>
       </div>
     </main>
