@@ -312,3 +312,29 @@ body{min-height:100%;min-width:320px;overflow-x:hidden;overflow-y:auto;-webkit-o
   .mm-app:before{background-size:auto,auto,auto,25px 25px,25px 25px,auto}
   .mm-app .welcome-panel{border-radius:16px}
 }
+
+
+/* Animated neural-network layer, intentionally behind all app controls. */
+.mm-app>.neural-canvas{
+  position:fixed;
+  inset:0;
+  display:block;
+  z-index:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  opacity:.58;
+  contain:strict;
+}
+.mm-app .main-shell{position:relative;z-index:1}
+.mm-app .sidebar{z-index:20}
+.mm-app .modal-scrim{z-index:50}
+.mm-app .toast{z-index:70}
+.mm-app.theme-dark>.neural-canvas{opacity:.68}
+@media(max-width:650px){
+  .mm-app>.neural-canvas{opacity:.42}
+  .mm-app.theme-dark>.neural-canvas{opacity:.53}
+}
+@media(prefers-reduced-motion:reduce){
+  .mm-app .orbit-ring,.mm-app .brain-orb{animation:none!important}
+}
