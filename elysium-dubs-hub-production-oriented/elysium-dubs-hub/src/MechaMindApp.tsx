@@ -88,6 +88,43 @@ const sampleNotes: Note[] = [
 ];
 
 
+const personalTutorContext = "Study profile for this workspace: the learner studies Mechatronics Engineering at Bowen University. They prefer thorough, step-by-step academic explanations, clear derivations, worked calculations with units, visual intuition or simple diagrams when useful, and mini-quizzes with one question at a time. Use clear British English and briefly explain advanced terminology. Relevant recent context, only when on-topic: a shared CHM 101 Module 1 titled Chemical Equation and Stoichiometry, with visible topics including equation parts, reaction/state symbols, balancing, conservation of mass and balancing complex equations with simultaneous equations; recent questions on vector fields and conservative-force tests; and deriving equations of motion from v = u + at. Long-term ambition: build Ligron, a world-class technology company. For the field F = (-y i + x j)/(x² + y²), be mathematically careful: the curl is zero away from the origin, but circulation around the unit circle is 2π, so it is not globally conservative on the punctured plane. Use that nuance only when relevant.";
+const chatWelcome = "Welcome back, David! This desk is tuned to your Mechatronics Engineering journey at Bowen University: clear step-by-step explanations, worked calculations, diagrams where useful, and one-question mini-quizzes. We can revisit your CHM 101 chemical-equation module, check vector fields carefully, derive the equations of motion, or map a realistic path towards building Ligron. What are we tackling first?";
+const personalStudyPaths = [
+  {
+    code: "CHM 101",
+    label: "YOUR SHARED MODULE",
+    title: "Chemical equations & stoichiometry",
+    description: "Reaction symbols, balancing equations and conservation of mass.",
+    glyph: "CHM",
+    prompt: "Teach me CHM 101 Module 1, Chemical Equation and Stoichiometry. Cover the parts of chemical equations, reactants and products, state and reaction symbols, balancing equations, conservation of mass, and complex equations using simultaneous equations. Explain each step, preserve the lecture notes' terminology, flag apparent errors rather than silently correcting them, and finish with one short quiz question."
+  },
+  {
+    code: "VECTOR FIELDS",
+    label: "VECTOR CALCULUS",
+    title: "Vector fields & conservative forces",
+    description: "Curl, domain checks and the closed-loop test.",
+    glyph: "∇ ×",
+    prompt: "Help me revisit the vector-field example F = (-y i + x j)/(x² + y²) and check whether it is truly conservative. Derive the curl step by step, discuss the domain around the origin, and use a closed-loop integral if useful. Explain why zero curl alone does not always establish global conservativeness."
+  },
+  {
+    code: "MECHANICS",
+    label: "PHYSICS FOUNDATIONS",
+    title: "Derive the equations of motion",
+    description: "Start from v = u + at, then build the other equations logically.",
+    glyph: "F = ma",
+    prompt: "Derive the four equations of uniformly accelerated motion, starting from v = u + at. State the assumptions, define every symbol, show the algebra step by step, include a worked numerical example, and finish with one check-for-understanding question."
+  },
+  {
+    code: "LIGRON BUILD TRACK",
+    label: "YOUR LONG-TERM MISSION",
+    title: "Turn fundamentals into a build",
+    description: "Connect programming, electronics, sensors, control and robotics.",
+    glyph: "L",
+    prompt: "Create a realistic learning roadmap for a Bowen University Mechatronics Engineering student whose long-term goal is to build Ligron, a world-class technology company. Connect maths, physics, programming, electronics, sensors, actuators, control systems, robotics and AI. Give me one beginner-friendly project, a clear bill of learning prerequisites, and the exact first step I can take today. Keep the advice ambitious but grounded."
+  }
+];
+
 function inferNoteMetadata(fileName: string, content = '') {
   const clean = fileName.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
   const text = (clean + ' ' + content.slice(0, 5000)).toLowerCase();
@@ -140,10 +177,14 @@ async function aiOrganize(fileName: string, content: string) {
 
 function localStudyReply(prompt: string): string {
   const p = prompt.toLowerCase();
-  if (/newton|force|acceleration/.test(p)) return 'Start with Newton’s second law: F = ma. F is the net force in newtons, m is mass in kilograms, and a is acceleration in m/s². Rearrange to a = F/m. Example: a 12 N force on a 3 kg object gives a = 12/3 = 4 m/s². Try one: what acceleration would a 20 N force produce on a 5 kg object?';
-  if (/vector|scalar/.test(p)) return 'A scalar has magnitude only, such as mass or temperature. A vector has both magnitude and direction, such as displacement or force. For vectors A = (a₁, a₂) and B = (b₁, b₂), their dot product is A · B = a₁b₁ + a₂b₂. It produces a scalar. Want to try a worked example?';
-  if (/circuit|ohm|resistor/.test(p)) return 'A useful starting point is Ohm’s law: V = IR, where voltage V is measured in volts, current I in amperes, and resistance R in ohms. If a 6 Ω resistor has 12 V across it, the current is I = V/R = 12/6 = 2 A. In a real circuit, check the component ratings before applying power.';
-  return 'Let’s break this down together. First, identify the key terms and what the question is asking. Next, connect the idea to one principle or equation, then work through a small example. If you paste the relevant paragraph or upload your note, we can make the explanation specific to your lecture. This is preview mode: live AI answers need the secure AI service connected.';
+  if (/conservative|curl|vector field/.test(p)) return "Let us check the mathematics carefully.\n\nFor F = (-y i + x j)/(x² + y²), write P = -y/(x² + y²) and Q = x/(x² + y²). Away from the origin, ∂Q/∂x = ∂P/∂y, so the two-dimensional curl is zero there.\n\nBut the field is undefined at (0, 0), and the domain with the origin removed is not simply connected. Around the unit circle, F · dr = 1, so the closed-loop integral is ∮F · dr = 2π, not zero. Therefore the field is not globally conservative on that domain. This is an important caveat: zero curl is sufficient on a suitable simply connected domain, not on every domain.\n\nQuick check: what point must be excluded from the domain?";
+  if (/stoichiometry|chemical equation|balanc\w*\s+(?:a\s+)?equation|reactant|product|chm 101/.test(p)) return "CHM 101 · Chemical equations and stoichiometry\n\n1. Reactants are on the left of the arrow; products are on the right.\n2. Coefficients change the number of molecules or formula units. Subscripts are part of a chemical formula, so do not change them when balancing an equation.\n3. A balanced equation has the same number of atoms of each element on both sides, following conservation of mass.\n\nWorked example: H₂ + O₂ → H₂O is not balanced because there are two oxygen atoms on the left but only one on the right. Put 2 before H₂O, then 2 before H₂: 2H₂ + O₂ → 2H₂O. Now both sides have four hydrogen atoms and two oxygen atoms.\n\nMini-quiz: balance Fe + O₂ → Fe₂O₃. Start by balancing iron, then oxygen.";
+  if (/equations of motion|derive.*motion|uniformly accelerated|v\s*=\s*u\s*\+\s*at/.test(p)) return "Let u be initial velocity, v final velocity, a constant acceleration, t time and s displacement. Assume acceleration is uniform.\n\n1. First equation: v = u + at (the starting relation).\n2. From average velocity, s = (u + v)t/2. Substitute v = u + at: s = ut + ½at².\n3. Since u = v − at, substitute into s = (u + v)t/2 to get s = vt − ½at².\n4. From v = u + at, t = (v − u)/a. Substitute into s = (u + v)t/2 and simplify to get v² = u² + 2as.\n\nQuick check: which equation is most useful when time is not given?";
+  if (/ligron|roadmap|robot|mechatronics/.test(p)) return "Your Ligron build track can grow in practical stages:\n\n1. Foundations: strengthen algebra, calculus, mechanics and basic programming.\n2. Make things move: learn circuits, microcontrollers, sensors and actuators.\n3. Close the loop: build a small control system, measure its behaviour and tune it.\n4. Add intelligence: use data and AI only where they solve a real problem.\n5. Build a product: interview users, prototype cheaply, test, improve and document what works.\n\nA strong first project is a sensor-based system that measures something, makes a decision and controls an output. Begin by choosing one measurable problem and writing what success looks like.";
+  if (/circuit|ohm|resistor/.test(p)) return "Start with Ohm’s law: V = IR, where voltage V is measured in volts, current I in amperes and resistance R in ohms. For a 6 Ω resistor with 12 V across it, I = V/R = 12/6 = 2 A. In a real circuit, check component ratings before applying power.\n\nMini-quiz: if voltage stays at 12 V and resistance doubles to 12 Ω, what happens to current?";
+  if (/newton|force|acceleration/.test(p)) return "Start with Newton’s second law: F = ma. F is the net force in newtons, m is mass in kilograms and a is acceleration in m/s². Rearrange to a = F/m. Example: a 12 N net force on a 3 kg object gives a = 12/3 = 4 m/s².\n\nMini-quiz: what acceleration does a 20 N net force produce on a 5 kg object?";
+  if (/vector|scalar/.test(p)) return "A scalar has magnitude only, such as mass or temperature. A vector has magnitude and direction, such as force or displacement. For A = (a₁, a₂) and B = (b₁, b₂), the dot product is A · B = a₁b₁ + a₂b₂, which is a scalar.\n\nWould you like to try a worked example?";
+  return "Let us break this down together. First, identify the key terms and what the question is asking. Next, connect the idea to a principle or equation, then work through a small example. I’ll keep the reasoning visible and add a quick check question. For a precise explanation of your lecture, import the file into your MechaMind library or paste the relevant excerpt here. Live AI answers need the secure AI service connected.";
 }
 
 function NeuralCanvas({ darkMode }: { darkMode: boolean }) {
@@ -222,7 +263,7 @@ export default function MechaMindApp() {
   const [toast, setToast] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
-  const [chat, setChat] = useState<ChatMessage[]>([{ role: 'assistant', content: 'Hi! I’m your study desk. Ask a question, choose a topic, or bring a lecture note into the conversation. We’ll work through it step by step.' }]);
+  const [chat, setChat] = useState<ChatMessage[]>([{ role: 'assistant', content: chatWelcome }]);
   const [mobileNav, setMobileNav] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [ready, setReady] = useState(false);
@@ -344,7 +385,7 @@ export default function MechaMindApp() {
         const { data: sessionData } = await supabase.auth.getSession();
         if (sessionData.session) {
           const { data, error } = await supabase.functions.invoke('ai-tutor', {
-            body: { mode: 'explain', messages: next.slice(-16).map(m => ({ role: m.role, content: m.content })) }
+            body: { mode: 'explain', messages: [{ role: 'assistant', content: personalTutorContext }, ...next.slice(-15).map(m => ({ role: m.role, content: m.content }))] }
           });
           if (error || !data?.reply) throw new Error(data?.error ?? friendlyError(error));
           setChat([...next, { role: 'assistant', content: data.reply }]);
@@ -362,8 +403,8 @@ export default function MechaMindApp() {
     }
   }
 
-  const pageTitle = page === 'Overview' ? 'Your learning space' : page === 'My library' ? 'My library' : page === 'Starred' ? 'Starred notes' : 'AI study desk';
-  const pageSubtitle = page === 'Overview' ? 'A calmer place for all the things you are learning.' : page === 'My library' ? 'Every lecture, handout and revision file, in one place.' : page === 'Starred' ? 'The notes you want to find in a heartbeat.' : 'Ask better questions. Understand the why, not just the answer.';
+  const pageTitle = page === 'Overview' ? "David's engineering cockpit" : page === 'My library' ? 'My library' : page === 'Starred' ? 'Starred notes' : 'AI study desk';
+  const pageSubtitle = page === 'Overview' ? 'Bowen University · Mechatronics Engineering · one concept closer to your Ligron mission.' : page === 'My library' ? 'Every lecture, handout and revision file, in one place.' : page === 'Starred' ? 'The notes you want to find in a heartbeat.' : 'Ask better questions. Understand the why, not just the answer.';
   const navItems: { name: Page; icon: ReactNode }[] = [
     { name: 'Overview', icon: <Grid2X2 size={18} /> },
     { name: 'My library', icon: <Library size={18} /> },
@@ -387,6 +428,12 @@ export default function MechaMindApp() {
   }
 
   function choosePage(next: Page) { setPage(next); setMobileNav(false); setSubject('All subjects'); }
+  function startPersonalStudy(prompt: string) {
+    setChatInput(prompt);
+    setPage('AI study desk');
+    setMobileNav(false);
+    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
   function NoteCard({ note }: { note: Note }) {
     return <article className={'note-card ' + (view === 'list' ? 'note-list' : '')}>
       <div className={'note-cover cover-' + (note.subject.toLowerCase().replace(/[^a-z]/g, '') || 'other')}>
@@ -412,7 +459,7 @@ export default function MechaMindApp() {
       <div className="sidebar-divider" />
       <div className="workspace-label">YOUR SUBJECTS <button className="tiny-add" aria-label="Add subject" onClick={() => notify('Custom subjects are coming in the next build.')}><Plus size={14} /></button></div>
       <div className="subject-nav">{subjects.slice(1).map((s, i) => <button key={s} onClick={() => { setSubject(s); setPage('My library'); setMobileNav(false); }} className={subject === s ? 'subject-active' : ''}><span className={'subject-dot subject-dot-' + i} />{s}</button>)}</div>
-      <div className="sidebar-bottom"><div className="storage-card"><div className="storage-icon"><HardDrive size={17} /></div><div className="storage-copy"><strong>Your private vault</strong><span>{savedCount} files saved · {formatSize(totalBytes)}</span></div><div className="storage-meter"><i style={{ width: Math.min(100, totalBytes / (250 * 1024 * 1024) * 100) + '%' }} /></div><small>Stored on this device</small></div><button className="nav-item settings-link" onClick={() => notify('Settings will arrive with cloud sync and account preferences.')}><Settings2 size={17} /><span>Settings</span></button><div className="profile-row"><div className="profile-avatar">D</div><div className="profile-copy"><strong>My workspace</strong><small>Free plan</small></div><MoreHorizontal size={18} /></div></div>
+      <div className="sidebar-bottom"><div className="storage-card"><div className="storage-icon"><HardDrive size={17} /></div><div className="storage-copy"><strong>Your private vault</strong><span>{savedCount} files saved · {formatSize(totalBytes)}</span></div><div className="storage-meter"><i style={{ width: Math.min(100, totalBytes / (250 * 1024 * 1024) * 100) + '%' }} /></div><small>Stored on this device</small></div><button className="nav-item settings-link" onClick={() => notify('Settings will arrive with cloud sync and account preferences.')}><Settings2 size={17} /><span>Settings</span></button><div className="profile-row"><div className="profile-avatar">D</div><div className="profile-copy"><strong>David's workspace</strong><small>Mechatronics Engineering</small></div><MoreHorizontal size={18} /></div></div>
     </aside>
 
     <main className="main-shell">
@@ -420,35 +467,55 @@ export default function MechaMindApp() {
 
       <div className="page-content">
         {page !== 'AI study desk' ? <>
-          <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> YOUR IDEAS, IN GOOD COMPANY</div><h1>{pageTitle}<span className="heading-period">.</span></h1><p>{pageSubtitle}</p></div><button className="primary-button" onClick={() => setUploadOpen(true)}><UploadCloud size={17} /> Import notes <ArrowRight size={16} /></button></section>
+          <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> {page === 'Overview' ? 'BOWEN UNIVERSITY · MECHATRONICS ENGINEERING' : page === 'My library' ? 'YOUR STUDY MATERIALS' : 'YOUR FAVOURITES'}</div><h1>{pageTitle}<span className="heading-period">.</span></h1><p>{pageSubtitle}</p></div><button className="primary-button" onClick={() => setUploadOpen(true)}><UploadCloud size={17} /> Import notes <ArrowRight size={16} /></button></section>
           {page === 'Overview' && (
             <section className="welcome-panel">
               <div className="welcome-copy">
-                <div className="welcome-pill"><Sparkles size={13} /> A LITTLE MORE CLARITY</div>
-                <h2>Make space for <em>big ideas.</em></h2>
-                <p>Drop your lecture files here. We’ll help you keep them tidy, so your brain can focus on the interesting bits.</p>
-                <button className="welcome-button" onClick={() => setUploadOpen(true)}>Add your first notes <ArrowRight size={16} /></button>
+                <div className="welcome-pill"><Sparkles size={13} /> DAVID'S ENGINEERING COCKPIT</div>
+                <h2>Build skills. <em>Build Ligron.</em></h2>
+                <p>Bowen University · Mechatronics Engineering. Learn step by step, master the maths, then connect your lessons to robotics, AI, electronics and real-world builds.</p>
+                <button className="welcome-button" onClick={() => startPersonalStudy(personalStudyPaths[3].prompt)}>Start my engineering mission <ArrowRight size={16} /></button>
                 <div className="welcome-foot">
-                  <span><Check size={14} /> Private by default</span>
-                  <span><Zap size={14} /> Works offline after loading</span>
+                  <span><Check size={14} /> Step-by-step learning</span>
+                  <span><Zap size={14} /> Worked examples + mini-quizzes</span>
                 </div>
               </div>
               <div className="welcome-illustration">
                 <div className="orbit-ring ring-one" />
                 <div className="orbit-ring ring-two" />
-                <div className="floating-note floating-note-one"><FileText size={20} /><span><b>Lecture notes</b><small>Neatly organised</small></span></div>
-                <div className="floating-note floating-note-two"><BookOpen size={20} /><span><b>Study smarter</b><small>One topic at a time</small></span></div>
+                <div className="floating-note floating-note-one"><FileText size={20} /><span><b>CHM 101</b><small>Equations & stoichiometry</small></span></div>
+                <div className="floating-note floating-note-two"><BookOpen size={20} /><span><b>Vectors & mechanics</b><small>Step-by-step practice</small></span></div>
                 <div className="brain-orb"><BrainCircuit size={51} strokeWidth={1.35} /></div>
                 <span className="orbit-spark">✦</span>
               </div>
             </section>
           )}
           <section className="stats-row"><div className="stat-card"><div className="stat-icon stat-lilac"><Library size={18} /></div><div><span>Total notes</span><strong>{notes.filter(n => !n.sample).length}<small>{notes.some(n => n.sample) ? ' + samples' : ' files'}</small></strong></div><span className="stat-trend"><ArrowRight size={14} /></span></div><div className="stat-card"><div className="stat-icon stat-peach"><Bookmark size={18} /></div><div><span>Starred notes</span><strong>{starredCount}<small> saved for later</small></strong></div><span className="stat-trend"><Star size={14} /></span></div><div className="stat-card"><div className="stat-icon stat-mint"><CalendarDays size={18} /></div><div><span>Study rhythm</span><strong>{savedCount ? 'Building' : 'Ready'}<small> one step at a time</small></strong></div><span className="stat-trend"><Zap size={14} /></span></div></section>
+          {page === 'Overview' && <section className="personal-runway">
+            <div className="section-heading personal-runway-heading">
+              <div><div className="section-kicker">YOUR CURRENT STUDY MAP</div><h2>Pick your next concept <span>4 pathways</span></h2></div>
+              <span className="personal-learning-badge"><BrainCircuit size={14} /> Built for deep understanding</span>
+            </div>
+            <div className="personal-path-grid">
+              {personalStudyPaths.map(path => <button type="button" key={path.code} className="personal-path-card" onClick={() => startPersonalStudy(path.prompt)} aria-label={"Study " + path.title}>
+                <div className="personal-path-top"><span className="personal-path-glyph">{path.glyph}</span><span className="personal-path-label">{path.label}</span></div>
+                <h3>{path.title}</h3>
+                <p>{path.description}</p>
+                <span className="personal-path-action">Study this next <ArrowRight size={14} /></span>
+              </button>)}
+            </div>
+            <div className="personal-mission">
+              <div className="personal-mission-icon"><Zap size={20} /></div>
+              <div className="personal-mission-copy"><span className="section-kicker">LONG-TERM NORTH STAR</span><h3>Ligron</h3><p>Turn concepts into capability: learn the principle, build a small prototype, test it, and improve it.</p></div>
+              <div className="personal-milestones"><span><b>01</b> Learn foundations</span><span><b>02</b> Build prototypes</span><span><b>03</b> Solve real problems</span></div>
+            </div>
+            <p className="personal-runway-note">The CHM 101 path is mapped from the module you shared. Import the original PDF through <strong>Add notes</strong> to keep the file in this browser's private vault.</p>
+          </section>}
           <section className="library-section"><div className="section-heading"><div><div className="section-kicker">{page === 'Starred' ? 'YOUR FAVOURITES' : page === 'My library' ? 'THE COLLECTION' : 'PICK UP WHERE YOU LEFT OFF'}</div><h2>{page === 'Starred' ? 'Saved for later' : page === 'My library' ? 'All your notes' : 'Recently organised'} <span>{filteredNotes.length}</span></h2></div><div className="library-tools"><label className="subject-select"><select value={subject} onChange={e => setSubject(e.target.value)}>{subjects.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={15} /></label><div className="view-toggle"><button aria-label="Grid view" className={view === 'grid' ? 'view-active' : ''} onClick={() => setView('grid')}><Grid2X2 size={16} /></button><button aria-label="List view" className={view === 'list' ? 'view-active' : ''} onClick={() => setView('list')}><List size={17} /></button></div></div></div>
             {filteredNotes.length ? <div className={'notes-grid ' + (view === 'list' ? 'list-view' : '')}>{filteredNotes.map(note => <NoteCard key={note.id} note={note} />)}</div> : <div className="empty-state"><div className="empty-icon"><FolderOpen size={25} /></div><h3>No notes found</h3><p>Try another search or import a lecture file to start your collection.</p><button className="primary-button" onClick={() => setUploadOpen(true)}><Plus size={16} /> Add a note</button></div>}
           </section>
           {page === 'Overview' && <section className="whatsapp-tip"><div className="whatsapp-mark"><MessageCircle size={21} /></div><div><strong>Notes arriving through WhatsApp?</strong><p>Open the lecture in WhatsApp, save or share the attachment to your device, then import it here. Direct WhatsApp linking is a future upgrade.</p></div><button onClick={() => setUploadOpen(true)}>Import a file <ArrowRight size={15} /></button></section>}
-        </> : <section className="study-page"><div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> THINK IT THROUGH</div><h1>AI study desk<span className="heading-period">.</span></h1><p>One question can unlock a whole topic. Start anywhere.</p></div><div className="ai-status"><span /> {backendConfigured ? 'AI service configured' : 'Study preview'}</div></div><div className="study-layout"><aside className="study-aside"><div className="study-aside-icon"><BrainCircuit size={25} /></div><h2>Learn for understanding.</h2><p>Bring a question, a tricky formula or a concept you want to see from a different angle.</p><div className="study-divider" /><span className="section-kicker">QUICK STARTS</span><button onClick={() => setChatInput('Explain Newton’s second law with a worked example.')}><Zap size={16} /><span><b>Explain a concept</b><small>Simple steps and examples</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput('Quiz me on vectors and scalar products.')}><Check size={16} /><span><b>Quiz me</b><small>Practise active recall</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput('Make a 30-minute study plan for my next lecture.')}><CalendarDays size={16} /><span><b>Make a study plan</b><small>Small steps, clear goals</small></span><ArrowRight size={15} /></button><div className="study-note-link"><BookOpen size={17} /><span><b>Use your own notes</b><small>Paste an excerpt into the chat to discuss it.</small></span></div></aside><div className="chat-panel"><div className="chat-panel-head"><div className="chat-bot-icon"><Sparkles size={18} /></div><div><strong>MechaMind companion</strong><small>Curious is a good place to start</small></div><button className="icon-button" onClick={() => setChat([{ role: 'assistant', content: 'Fresh page, fresh perspective. What would you like to understand today?' }])}><MoreHorizontal size={18} /></button></div><div className="chat-messages">{chat.map((message, index) => <div key={index} className={'chat-message ' + (message.role === 'user' ? 'user-message' : '')}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={15} /> : 'D'}</div><div className="message-bubble">{message.content.split('\n').map((line, i) => <p key={i}>{line || '\u00a0'}</p>)}</div></div>)}{chatBusy && <div className="chat-message"><div className="message-avatar"><Sparkles size={15} /></div><div className="typing-dots"><i /><i /><i /></div></div>}<div ref={dropRef} /></div><form className="chat-composer" onSubmit={sendQuestion}><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ask anything you're learning..." rows={2} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendQuestion(e as unknown as FormEvent); } }} /><div className="composer-footer"><span><Sparkles size={13} /> Check the reasoning, not just the result</span><button type="submit" disabled={!chatInput.trim() || chatBusy} aria-label="Send message"><Send size={17} /></button></div></form><div className="chat-disclaimer">Preview answers are built in. Live AI requires a configured secure service and sign-in.</div></div></div></section>}
+        </> : <section className="study-page"><div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> THINK IT THROUGH</div><h1>AI study desk<span className="heading-period">.</span></h1><p>One question can unlock a whole topic. Start anywhere.</p></div><div className="ai-status"><span /> {backendConfigured ? 'AI service configured' : 'Study preview'}</div></div><div className="study-layout"><aside className="study-aside"><div className="study-aside-icon"><BrainCircuit size={25} /></div><h2>Learn for understanding.</h2><p>Bring a question, a tricky formula or a concept you want to see from a different angle.</p><div className="study-divider" /><span className="section-kicker">YOUR NEXT STUDY MOVES</span><button onClick={() => setChatInput(personalStudyPaths[0].prompt)}><FileText size={16} /><span><b>CHM 101 deep dive</b><small>Balancing + stoichiometry</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[1].prompt)}><BrainCircuit size={16} /><span><b>Check the vector field</b><small>Curl, domain + circulation</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[2].prompt)}><Zap size={16} /><span><b>Derive motion equations</b><small>Start from v = u + at</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[3].prompt)}><BookOpen size={16} /><span><b>Map the Ligron path</b><small>Learning into real prototypes</small></span><ArrowRight size={15} /></button><div className="study-note-link"><BrainCircuit size={17} /><span><b>Your learning style</b><small>Step-by-step reasoning, worked calculations, diagrams where useful, and short quizzes that test understanding.</small></span></div></aside><div className="chat-panel"><div className="chat-panel-head"><div className="chat-bot-icon"><Sparkles size={18} /></div><div><strong>David's MechaMind companion</strong><small>Mechatronics · clear steps · real builds</small></div><button className="icon-button" onClick={() => setChat([{ role: 'assistant', content: chatWelcome }])}><MoreHorizontal size={18} /></button></div><div className="chat-messages">{chat.map((message, index) => <div key={index} className={'chat-message ' + (message.role === 'user' ? 'user-message' : '')}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={15} /> : 'D'}</div><div className="message-bubble">{message.content.split('\n').map((line, i) => <p key={i}>{line || '\u00a0'}</p>)}</div></div>)}{chatBusy && <div className="chat-message"><div className="message-avatar"><Sparkles size={15} /></div><div className="typing-dots"><i /><i /><i /></div></div>}<div ref={dropRef} /></div><form className="chat-composer" onSubmit={sendQuestion}><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ask anything you're learning..." rows={2} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendQuestion(e as unknown as FormEvent); } }} /><div className="composer-footer"><span><Sparkles size={13} /> Check the reasoning, not just the result</span><button type="submit" disabled={!chatInput.trim() || chatBusy} aria-label="Send message"><Send size={17} /></button></div></form><div className="chat-disclaimer">Preview answers are built in. Live AI requires a configured secure service and sign-in.</div></div></div></section>}
           <footer className="page-footer"><span>Made for curious minds <span className="footer-spark">✳</span></span><span><span className="privacy-dot" /> Your files stay on this device in this version</span></footer>
       </div>
     </main>
