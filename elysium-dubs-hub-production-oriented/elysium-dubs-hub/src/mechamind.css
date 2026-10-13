@@ -167,3 +167,148 @@ body{min-height:100%;min-width:320px;overflow-x:hidden;overflow-y:auto;-webkit-o
   .notes-grid{gap:7px}
   .note-card-body{padding:9px}
 }
+
+
+/* Premium ambient canvas: layered colour, fine grid, and softly-lit surfaces. */
+.mm-app{
+  position:relative;
+  isolation:isolate;
+  background:transparent;
+  --ambient-shadow:0 18px 55px rgba(39,32,75,.065);
+  --surface-border:rgba(226,224,239,.86);
+}
+.mm-app:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 83% 7%,rgba(153,132,255,.16),transparent 31%),
+    radial-gradient(ellipse at 38% 48%,rgba(126,203,179,.10),transparent 34%),
+    radial-gradient(ellipse at 8% 92%,rgba(255,190,147,.13),transparent 29%),
+    linear-gradient(rgba(119,104,174,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(119,104,174,.035) 1px,transparent 1px),
+    #f7f7fb;
+  background-size:auto,auto,auto,32px 32px,32px 32px,auto;
+  mask-image:linear-gradient(to bottom,black 0%,rgba(0,0,0,.8) 62%,rgba(0,0,0,.48) 100%);
+}
+.mm-app .sidebar{
+  background:rgba(255,255,255,.84);
+  backdrop-filter:blur(24px) saturate(145%);
+  -webkit-backdrop-filter:blur(24px) saturate(145%);
+  border-right-color:rgba(226,224,239,.78);
+}
+.mm-app .topbar{
+  background:rgba(250,250,253,.76);
+  border-bottom-color:rgba(226,224,239,.75);
+  backdrop-filter:blur(24px) saturate(150%);
+  -webkit-backdrop-filter:blur(24px) saturate(150%);
+}
+.mm-app .page-content{position:relative}
+.mm-app .welcome-panel{
+  background:
+    radial-gradient(ellipse at 78% 15%,rgba(159,134,255,.35),transparent 34%),
+    radial-gradient(ellipse at 93% 100%,rgba(80,181,151,.19),transparent 37%),
+    linear-gradient(118deg,#211d35 0%,#302747 52%,#252d3c 100%);
+  border:1px solid rgba(255,255,255,.13);
+  box-shadow:0 22px 55px rgba(37,28,66,.18),inset 0 1px rgba(255,255,255,.11);
+}
+.mm-app .welcome-panel:before{
+  width:390px;height:390px;right:9%;top:-255px;
+  background:radial-gradient(circle,rgba(171,150,255,.28),rgba(123,103,210,.08) 47%,transparent 70%);
+  filter:none;
+}
+.mm-app .welcome-panel:after{
+  width:65%;
+  background:linear-gradient(90deg,transparent,rgba(119,105,180,.09));
+}
+.mm-app .brain-orb{
+  background:linear-gradient(145deg,#b3a0ff 0%,#8064eb 52%,#4d75a8 100%);
+  box-shadow:0 18px 48px rgba(8,8,24,.36),inset 1px 1px rgba(255,255,255,.68),inset -8px -10px 24px rgba(34,22,84,.18);
+}
+.mm-app .orbit-ring{border-color:rgba(207,196,255,.43);box-shadow:0 0 35px rgba(148,123,255,.08)}
+.mm-app .ring-two{border-color:rgba(145,218,195,.23)}
+.mm-app .floating-note{
+  background:rgba(255,255,255,.095);
+  border-color:rgba(255,255,255,.2);
+  box-shadow:0 14px 34px rgba(7,6,20,.17),inset 0 1px rgba(255,255,255,.12);
+}
+.mm-app .stat-card,.mm-app .note-card,.mm-app .whatsapp-tip,.mm-app .empty-state{
+  border-color:var(--surface-border);
+  box-shadow:0 4px 16px rgba(44,37,78,.025);
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background .22s ease;
+}
+.mm-app .stat-card{
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(250,249,255,.88));
+}
+.mm-app .stat-card:hover{
+  transform:translateY(-3px);
+  box-shadow:var(--ambient-shadow);
+  border-color:#d7d0f6;
+}
+.mm-app .note-card{
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(8px);
+}
+.mm-app .note-card:hover{
+  transform:translateY(-5px);
+  box-shadow:0 20px 42px rgba(43,34,77,.095);
+  border-color:#d3c9f7;
+}
+.mm-app .note-cover{background-image:linear-gradient(135deg,rgba(255,255,255,.17),transparent 65%)}
+.mm-app .section-heading h2{letter-spacing:-.65px}
+.mm-app .primary-button,.mm-app .top-upload{
+  background:linear-gradient(135deg,#8064ee,#684bda);
+  box-shadow:0 7px 18px rgba(113,82,221,.22),inset 0 1px rgba(255,255,255,.24);
+}
+.mm-app .primary-button:hover,.mm-app .top-upload:hover{
+  background:linear-gradient(135deg,#8b71f5,#6d50df);
+  box-shadow:0 10px 24px rgba(113,82,221,.28);
+}
+.mm-app .install-app-button{
+  background:rgba(246,249,243,.88);
+  backdrop-filter:blur(10px);
+  box-shadow:0 3px 10px rgba(54,86,60,.045);
+}
+.mm-app .global-search,.mm-app .view-toggle,.mm-app .subject-select select{
+  background:rgba(255,255,255,.78);
+  backdrop-filter:blur(10px);
+}
+.mm-app .whatsapp-tip{
+  background:linear-gradient(105deg,rgba(255,255,255,.92),rgba(247,252,248,.91));
+}
+.mm-app .page-footer{opacity:.9}
+@media(prefers-reduced-motion:no-preference){
+  .mm-app .orbit-ring{animation:mechamind-orbit 24s linear infinite}
+  .mm-app .ring-two{animation:mechamind-orbit-reverse 31s linear infinite}
+  .mm-app .brain-orb{animation:mechamind-float 5.5s ease-in-out infinite}
+  @keyframes mechamind-orbit{to{transform:rotate(330deg)}}
+  @keyframes mechamind-orbit-reverse{to{transform:rotate(-328deg)}}
+  @keyframes mechamind-float{0%,100%{translate:0 0}50%{translate:0 -7px}}
+}
+.mm-app.theme-dark:before{
+  background:
+    radial-gradient(ellipse at 83% 7%,rgba(110,91,191,.18),transparent 32%),
+    radial-gradient(ellipse at 38% 48%,rgba(63,126,100,.12),transparent 35%),
+    radial-gradient(ellipse at 8% 92%,rgba(146,94,62,.09),transparent 29%),
+    linear-gradient(rgba(185,191,180,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(185,191,180,.025) 1px,transparent 1px),
+    #171b18;
+  background-size:auto,auto,auto,32px 32px,32px 32px,auto;
+  mask-image:linear-gradient(to bottom,black 0%,rgba(0,0,0,.9) 75%,rgba(0,0,0,.65) 100%);
+}
+.mm-app.theme-dark .sidebar{background:rgba(28,34,29,.88);backdrop-filter:blur(24px) saturate(130%)}
+.mm-app.theme-dark .topbar{background:rgba(25,30,26,.8);border-bottom-color:rgba(60,70,61,.7)}
+.mm-app.theme-dark .stat-card,.mm-app.theme-dark .note-card,.mm-app.theme-dark .whatsapp-tip,.mm-app.theme-dark .empty-state{
+  box-shadow:0 8px 24px rgba(0,0,0,.10);
+}
+.mm-app.theme-dark .stat-card{background:linear-gradient(145deg,rgba(36,44,37,.97),rgba(31,38,32,.94))}
+.mm-app.theme-dark .note-card{background:rgba(34,40,35,.95)}
+.mm-app.theme-dark .note-card:hover{box-shadow:0 18px 38px rgba(0,0,0,.22);border-color:#536b56}
+.mm-app.theme-dark .whatsapp-tip{background:linear-gradient(105deg,rgba(34,40,35,.96),rgba(30,44,34,.94))}
+.mm-app.theme-dark .global-search,.mm-app.theme-dark .view-toggle,.mm-app.theme-dark .subject-select select{background:rgba(34,40,35,.92)}
+@media(max-width:650px){
+  .mm-app:before{background-size:auto,auto,auto,25px 25px,25px 25px,auto}
+  .mm-app .welcome-panel{border-radius:16px}
+}
