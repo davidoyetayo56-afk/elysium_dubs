@@ -33,7 +33,7 @@ body{background:#f7f6f1;color:var(--ink)}
 .auto-organize-toggle{border-color:#dce5d9;background:#f8faf6}
 .auto-organize-icon{background:#e8efe5;color:#496e56}
 .toggle-track.toggle-on{background:#496e56}
-button,input,select,textarea{transition-color:color .15s ease,background-color .15s ease,border-color .15s ease}
+button,input,select,textarea{transition:color .15s ease,background-color .15s ease,border-color .15s ease}
 .page-heading h1{letter-spacing:-1.2px}
 .page-heading p,.welcome-copy p{color:#777e76}
 .sidebar{background:#fffefa}
