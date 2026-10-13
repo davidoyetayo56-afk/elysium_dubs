@@ -146,6 +146,66 @@ function localStudyReply(prompt: string): string {
   return 'Let’s break this down together. First, identify the key terms and what the question is asking. Next, connect the idea to one principle or equation, then work through a small example. If you paste the relevant paragraph or upload your note, we can make the explanation specific to your lecture. This is preview mode: live AI answers need the secure AI service connected.';
 }
 
+function NeuralCanvas({ darkMode }: { darkMode: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let width = 0, height = 0, frame = 0, tick = 0;
+    let points: Array<{ x: number; y: number; vx: number; vy: number; r: number; phase: number }> = [];
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.6);
+      width = window.innerWidth; height = window.innerHeight;
+      canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
+      canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const count = width < 650 ? 22 : width < 1100 ? 32 : 48;
+      points = Array.from({ length: count }, (_, i) => {
+        const seed = (i + 1) * 127.1;
+        const x = (((Math.sin(seed) * 43758.5453) % 1 + 1) % 1) * width;
+        const y = (((Math.sin(seed * 1.73) * 24634.6345) % 1 + 1) % 1) * height;
+        return { x, y, vx: Math.sin(seed * 2.1) * 0.11, vy: Math.cos(seed * 1.3) * 0.10, r: 1.1 + (i % 3) * 0.45, phase: i * 0.77 };
+      });
+    };
+    const draw = () => {
+      context.clearRect(0, 0, width, height);
+      const linkDistance = width < 650 ? 115 : 155;
+      const lineColor = darkMode ? '150,202,165' : '111,104,180';
+      const dotColor = darkMode ? '161,218,177' : '117,102,210';
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        for (let j = i + 1; j < points.length; j++) {
+          const q = points[j], dx = p.x - q.x, dy = p.y - q.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < linkDistance) {
+            context.strokeStyle = 'rgba(' + lineColor + ',' + ((1 - distance / linkDistance) * (darkMode ? 0.17 : 0.13)) + ')';
+            context.lineWidth = 0.7; context.beginPath(); context.moveTo(p.x, p.y); context.lineTo(q.x, q.y); context.stroke();
+          }
+        }
+        const pulse = 0.65 + (Math.sin(tick * 0.018 + p.phase) + 1) * 0.24;
+        context.beginPath(); context.arc(p.x, p.y, p.r * pulse, 0, Math.PI * 2);
+        context.fillStyle = 'rgba(' + dotColor + ',' + (darkMode ? 0.58 : 0.42) + ')'; context.fill();
+        if (i % 8 === 0) {
+          context.beginPath(); context.arc(p.x, p.y, p.r * 3.2 * pulse, 0, Math.PI * 2);
+          context.fillStyle = 'rgba(' + dotColor + ',' + (darkMode ? 0.055 : 0.045) + ')'; context.fill();
+        }
+        if (!reducedMotion) {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < -8) p.x = width + 8; if (p.x > width + 8) p.x = -8;
+          if (p.y < -8) p.y = height + 8; if (p.y > height + 8) p.y = -8;
+        }
+      }
+      tick++;
+      if (!reducedMotion) frame = window.requestAnimationFrame(draw);
+    };
+    resize(); draw(); window.addEventListener('resize', resize);
+    return () => { window.removeEventListener('resize', resize); if (frame) window.cancelAnimationFrame(frame); };
+  }, [darkMode]);
+  return <canvas ref={canvasRef} className="neural-canvas" aria-hidden="true" />;
+}
+
 export default function MechaMindApp() {
   const [page, setPage] = useState<Page>('Overview');
   const [notes, setNotes] = useState<Note[]>([]);
@@ -344,6 +404,7 @@ export default function MechaMindApp() {
   }
 
   return <div className={'mm-app ' + (darkMode ? 'theme-dark' : '')}>
+    <NeuralCanvas darkMode={darkMode} />
     <aside className={'sidebar ' + (mobileNav ? 'sidebar-open' : '')}>
       <div className="brand-lockup"><div className="brand-symbol"><span>m</span><i /></div><div><strong>mecha<span>mind</span></strong><small>YOUR LEARNING SPACE</small></div><button className="mobile-close icon-button" onClick={() => setMobileNav(false)}><X size={19} /></button></div>
       <div className="workspace-label">WORKSPACE <ChevronDown size={13} /></div>
