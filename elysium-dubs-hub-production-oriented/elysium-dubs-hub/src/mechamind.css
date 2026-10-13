@@ -489,3 +489,17 @@ body{min-height:100%;min-width:320px;overflow-x:hidden;overflow-y:auto;-webkit-o
 .mm-app.theme-dark .active-document-pill strong{color:#eeebff}
 .mm-app.theme-dark .active-document-pill button{color:#9e9dab}
 @media(max-width:650px){.mm-app .note-study-actions button{font-size:8px;padding:7px 3px;gap:3px}.mm-app .study-mode-picker{gap:3px;padding:8px}.mm-app .study-mode-picker button{padding:7px 8px;font-size:8.5px}}
+
+
+/* Level 2: calm controls for exporting and saving tutor output. */
+.mm-app .generated-result-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding-top:11px;margin-top:10px;border-top:1px solid #e8e6ef}
+.mm-app .generated-result-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 9px;border:1px solid #e7e5ef;border-radius:8px;background:#fff;color:#706d7f;font-size:8.5px;font-weight:700;transition:background .16s,border-color .16s,color .16s}
+.mm-app .generated-result-actions button:hover{background:#f1efff;border-color:#d4cdf7;color:#5a46bf}
+.mm-app .generated-result-actions .save-generated-note{border-color:#d9d2fa;background:#f5f2ff;color:#5944be}
+.mm-app .generated-result-actions .save-generated-note:hover{background:#e9e4ff}
+.mm-app.theme-dark .generated-result-actions{border-color:#2a2b33}
+.mm-app.theme-dark .generated-result-actions button{background:#16171d;border-color:#30313b;color:#b1b1be}
+.mm-app.theme-dark .generated-result-actions button:hover{background:#242137;border-color:#48415f;color:#d7d0ff}
+.mm-app.theme-dark .generated-result-actions .save-generated-note{background:#29243f;border-color:#47405e;color:#d4cdff}
+.mm-app.theme-dark .generated-result-actions .save-generated-note:hover{background:#342d50}
+@media(max-width:650px){.mm-app .generated-result-actions{gap:5px}.mm-app .generated-result-actions button{font-size:8px;padding:7px 7px}}
