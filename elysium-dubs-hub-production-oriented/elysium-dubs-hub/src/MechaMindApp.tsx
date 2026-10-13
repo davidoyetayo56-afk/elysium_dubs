@@ -504,7 +504,7 @@ export default function MechaMindApp() {
         const sourceBlob = await vaultGet(note.storageKey);
         if (!sourceBlob) throw new Error('The original file is missing from this browser storage.');
         const inferredName = note.fileName ?? (note.kind === 'PDF' ? note.name + '.pdf' : note.name + '.docx');
-        const sourceFile = new File([sourceBlob], inferredName, { type: sourceBlob.type });
+        const sourceFile = new window.File([sourceBlob], inferredName, { type: sourceBlob.type });
         documentText = await readableText(sourceFile);
       }
       if (documentText.trim().length < 80) {
