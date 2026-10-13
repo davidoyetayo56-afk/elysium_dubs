@@ -97,7 +97,7 @@ function inferNoteMetadata(fileName: string, content = '') {
     ['Chemistry', /\b(chemistry|chemical|molecule|atom|reaction|organic|inorganic|chm\s?10\d|chm\s?20\d)\b/],
     ['Programming', /\b(programming|python|javascript|typescript|algorithm|software|coding|computer science|csc\s?10\d)\b/],
     ['Electronics', /\b(electronics|circuit|resistor|capacitor|voltage|current|ohm|digital logic|eee\s?10\d)\b/],
-    ['Mechatronics', /\b(mechatronics|robotics|robot|sensor|actuator|control system|embedded|mct\s?10\d)\b/],
+    ['Engineering', /\b(engineering|mechatronics|robotics|robot|sensor|actuator|control system|embedded|mct\s?10\d)\b/],
   ];
   const matched = rules.find(([, pattern]) => pattern.test(text));
   const courseMatch = (clean + ' ' + content.slice(0, 1000)).match(/\b(?:MCT|MTH|PHY|CHM|EEE|CSC|ENG|GNS)\s?[-]?\s?\d{3}\b/i);
