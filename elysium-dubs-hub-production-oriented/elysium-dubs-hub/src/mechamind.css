@@ -338,3 +338,47 @@ body{min-height:100%;min-width:320px;overflow-x:hidden;overflow-y:auto;-webkit-o
 @media(prefers-reduced-motion:reduce){
   .mm-app .orbit-ring,.mm-app .brain-orb{animation:none!important}
 }
+
+
+/* Personal learning cockpit: course pathways, learning preferences and the Ligron north star. */
+.mm-app .personal-runway{margin:4px 0 31px}
+.mm-app .personal-runway-heading{align-items:center;margin-bottom:14px}
+.mm-app .personal-learning-badge{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(73,110,86,.18);background:rgba(237,242,235,.75);color:#496e56;border-radius:999px;padding:8px 11px;font-size:9px;font-weight:700;white-space:nowrap}
+.mm-app .personal-path-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.mm-app .personal-path-card{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:190px;padding:14px;border:1px solid var(--surface-border);border-radius:14px;background:rgba(255,255,255,.84);color:var(--ink);text-align:left;box-shadow:0 5px 18px rgba(44,37,78,.025);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.mm-app .personal-path-card:hover{transform:translateY(-4px);border-color:#cbd9c9;box-shadow:0 16px 32px rgba(43,52,40,.09)}
+.mm-app .personal-path-card:focus-visible{outline:3px solid #a7c4a9;outline-offset:3px}
+.mm-app .personal-path-top{display:flex;align-items:center;gap:8px;width:100%;margin-bottom:13px}
+.mm-app .personal-path-glyph{display:grid;place-items:center;flex-shrink:0;min-width:35px;height:35px;padding:0 5px;border-radius:10px;background:#e8efe5;color:#496e56;font-size:10px;font-weight:800;letter-spacing:-.3px}
+.mm-app .personal-path-label{font-size:7.5px;font-weight:800;letter-spacing:1px;color:#8b9588;line-height:1.5}
+.mm-app .personal-path-card h3{margin:0 0 7px;color:#30362f;font:750 12px/1.45 Manrope,sans-serif;letter-spacing:-.18px}
+.mm-app .personal-path-card p{margin:0 0 14px;color:#7e857b;font-size:9.5px;line-height:1.65}
+.mm-app .personal-path-action{display:flex;align-items:center;gap:6px;margin-top:auto;color:#496e56;font-size:9px;font-weight:800}
+.mm-app .personal-path-action svg{transition:transform .2s ease}
+.mm-app .personal-path-card:hover .personal-path-action svg{transform:translateX(3px)}
+.mm-app .personal-mission{display:grid;grid-template-columns:38px minmax(0,1fr) minmax(240px,1.05fr);align-items:center;gap:12px;padding:15px;margin-top:13px;border:1px solid rgba(73,110,86,.16);border-radius:14px;background:linear-gradient(105deg,rgba(237,242,235,.9),rgba(255,255,255,.78))}
+.mm-app .personal-mission-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#496e56;color:white}
+.mm-app .personal-mission-copy .section-kicker{font-size:7.5px;letter-spacing:1.1px;color:#82907f}
+.mm-app .personal-mission-copy h3{margin:4px 0 3px;color:#30362f;font:800 17px/1.2 Manrope,sans-serif;letter-spacing:-.5px}
+.mm-app .personal-mission-copy p{margin:0;color:#788174;font-size:9px;line-height:1.6}
+.mm-app .personal-milestones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.mm-app .personal-milestones span{display:flex;flex-direction:column;gap:5px;padding:10px 9px;border:1px solid rgba(73,110,86,.12);border-radius:9px;background:rgba(255,255,255,.67);color:#707a6e;font-size:8.5px;line-height:1.35}
+.mm-app .personal-milestones b{color:#496e56;font-size:9px;letter-spacing:.5px}
+.mm-app .personal-runway-note{margin:9px 1px 0;color:#969b92;font-size:8.5px;line-height:1.65}
+.mm-app .personal-runway-note strong{color:#6c7868}
+.mm-app .study-note-link{align-items:flex-start}
+.mm-app .study-aside>button b{line-height:1.4}
+.mm-app.theme-dark .personal-learning-badge{background:rgba(48,67,51,.78);border-color:#3b5140;color:#b8d9bf}
+.mm-app.theme-dark .personal-path-card{background:rgba(34,40,35,.94);border-color:#343c35;color:#e9eee8}
+.mm-app.theme-dark .personal-path-card:hover{border-color:#5b775f;box-shadow:0 17px 32px rgba(0,0,0,.2)}
+.mm-app.theme-dark .personal-path-glyph,.mm-app.theme-dark .personal-mission-icon{background:#304333;color:#b8d9bf}
+.mm-app.theme-dark .personal-path-card h3,.mm-app.theme-dark .personal-mission-copy h3{color:#e9eee8}
+.mm-app.theme-dark .personal-path-label,.mm-app.theme-dark .personal-mission-copy .section-kicker{color:#9aaf9c}
+.mm-app.theme-dark .personal-path-card p,.mm-app.theme-dark .personal-mission-copy p,.mm-app.theme-dark .personal-runway-note{color:#a1aaa1}
+.mm-app.theme-dark .personal-path-action,.mm-app.theme-dark .personal-runway-note strong{color:#b8d9bf}
+.mm-app.theme-dark .personal-mission{background:linear-gradient(105deg,rgba(39,54,42,.96),rgba(31,38,32,.91));border-color:#3a4b3d}
+.mm-app.theme-dark .personal-milestones span{background:rgba(29,36,30,.75);border-color:#3b4a3c;color:#aeb9ae}
+.mm-app.theme-dark .personal-milestones b{color:#b8d9bf}
+@media(max-width:1200px){.mm-app .personal-path-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mm-app .personal-mission{grid-template-columns:38px minmax(0,1fr)}.mm-app .personal-milestones{grid-column:2;grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.mm-app .personal-runway-heading{align-items:flex-start}.mm-app .personal-learning-badge{font-size:8px;padding:7px 8px;white-space:normal}.mm-app .personal-path-grid{gap:9px}.mm-app .personal-path-card{min-height:185px;padding:11px}.mm-app .personal-path-top{align-items:flex-start;gap:6px}.mm-app .personal-path-glyph{min-width:31px;height:31px;font-size:9px}.mm-app .personal-path-label{font-size:6.5px;letter-spacing:.6px}.mm-app .personal-path-card h3{font-size:11px}.mm-app .personal-path-card p{font-size:9px}.mm-app .personal-mission{grid-template-columns:34px minmax(0,1fr);gap:10px;padding:12px}.mm-app .personal-mission-icon{width:34px;height:34px}.mm-app .personal-milestones{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr))}.mm-app .personal-milestones span{font-size:8px;padding:8px 7px}.mm-app .personal-runway-note{font-size:8px}}
+@media(max-width:375px){.mm-app .personal-path-grid{grid-template-columns:1fr}.mm-app .personal-path-card{min-height:158px}.mm-app .personal-path-top{align-items:center}.mm-app .personal-path-label{font-size:7.5px}}
