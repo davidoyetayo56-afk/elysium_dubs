@@ -12,3 +12,87 @@
 .toggle-track i{display:block;width:14px;height:14px;background:#fff;border-radius:50%;box-shadow:0 1px 3px #0002;transition:transform .18s}
 .toggle-track.toggle-on{background:#7657e8}
 .toggle-track.toggle-on i{transform:translateX(14px)}
+
+
+/* A warmer, more editorial finish: paper-like surfaces, quieter accents, and generous reading contrast. */
+:root{color-scheme:light;--ink:#292d28;--muted:#777e76;--line:#e6e5dc;--purple:#547a62;--purple-dark:#3e654d;--lavender:#edf2eb;--surface:#fffefa}
+body{background:#f7f6f1;color:var(--ink)}
+.mm-app{background:#f7f6f1;color:var(--ink)}
+.brand-symbol{background:#496e56;box-shadow:0 5px 13px #35543c1c}
+.primary-button,.top-upload{background:#496e56}
+.primary-button:hover,.top-upload:hover{background:#365a43}
+.welcome-panel{background:#e9eee5;border-color:#dce4d8}
+.welcome-copy h2 em{font-family:Georgia,'Times New Roman',serif;font-weight:500;letter-spacing:-1.1px;color:#496e56}
+.welcome-pill{background:#dfe8dc;color:#46664e}
+.welcome-button{background:#496e56}
+.note-card{box-shadow:0 1px 1px #292d2805}
+.note-card:hover{box-shadow:0 10px 25px #292d2810;border-color:#d4ded2}
+.icon-button:hover,.view-toggle .view-active{background:#edf2eb;color:#496e56}
+.theme-toggle{width:36px;height:36px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:10px;flex-shrink:0}
+.theme-toggle:hover{background:#edf2eb;color:#496e56}
+.auto-organize-toggle{border-color:#dce5d9;background:#f8faf6}
+.auto-organize-icon{background:#e8efe5;color:#496e56}
+.toggle-track.toggle-on{background:#496e56}
+button,input,select,textarea{transition-color:color .15s ease,background-color .15s ease,border-color .15s ease}
+.page-heading h1{letter-spacing:-1.2px}
+.page-heading p,.welcome-copy p{color:#777e76}
+.sidebar{background:#fffefa}
+.topbar{background:#fffefa}
+.global-search{background:#f8f7f2}
+.global-search:focus-within{border-color:#a7b9a5;box-shadow:0 0 0 3px #496e5612}
+.action-menu{background:#fffefa;border-color:#e6e5dc}
+.modal-scrim{background:#20251f88}
+.upload-modal{background:#fffefa}
+.drop-zone{background:#fafaf6;border-color:#cbd9c9}
+.drop-icon{background:#e8efe5;color:#496e56}
+.text-button{color:#496e56}
+.toast{background:#28382d}
+
+/* Dark appearance is a full surface treatment, not a colour inversion. */
+.mm-app.theme-dark{color-scheme:dark;background:#171b18;color:#e9eee8;--ink:#e9eee8;--muted:#a1aaa1;--line:#343c35;--purple:#9fc7a8;--purple-dark:#b5d6bc;--lavender:#29382d;--surface:#222823}
+.mm-app.theme-dark .sidebar,.mm-app.theme-dark .topbar{background:#1d231e;border-color:#343c35}
+.mm-app.theme-dark .main-shell,.mm-app.theme-dark .page-content{background:#171b18}
+.mm-app.theme-dark .workspace-label,.mm-app.theme-dark .breadcrumb span,.mm-app.theme-dark .profile-copy small,.mm-app.theme-dark .page-heading p,.mm-app.theme-dark .page-footer{color:#9aa59b}
+.mm-app.theme-dark .brand-lockup strong,.mm-app.theme-dark .page-heading h1,.mm-app.theme-dark .section-heading h2,.mm-app.theme-dark .note-card h3,.mm-app.theme-dark .stat-card strong,.mm-app.theme-dark .profile-copy strong,.mm-app.theme-dark .storage-copy strong,.mm-app.theme-dark .modal-head h2,.mm-app.theme-dark .empty-state h3,.mm-app.theme-dark .auto-organize-toggle strong{color:#e9eee8}
+.mm-app.theme-dark .brand-symbol{background:#5d8968;box-shadow:none}
+.mm-app.theme-dark .nav-item{color:#a9b2aa}
+.mm-app.theme-dark .nav-item:hover,.mm-app.theme-dark .nav-active{background:#29382d;color:#b8d9bf}
+.mm-app.theme-dark .nav-active:before{background:#9fc7a8}
+.mm-app.theme-dark .subject-nav button{color:#a9b2aa}
+.mm-app.theme-dark .subject-nav button:hover,.mm-app.theme-dark .subject-nav button.subject-active{background:#29382d;color:#c1dfc7}
+.mm-app.theme-dark .sidebar-divider,.mm-app.theme-dark .note-card-footer,.mm-app.theme-dark .import-hint{border-color:#343c35}
+.mm-app.theme-dark .storage-card,.mm-app.theme-dark .stat-card,.mm-app.theme-dark .note-card,.mm-app.theme-dark .whatsapp-tip,.mm-app.theme-dark .empty-state,.mm-app.theme-dark .view-toggle,.mm-app.theme-dark .subject-select select,.mm-app.theme-dark .global-search,.mm-app.theme-dark .action-menu,.mm-app.theme-dark .upload-modal{background:#222823;border-color:#343c35;color:#e9eee8}
+.mm-app.theme-dark .storage-icon,.mm-app.theme-dark .stat-lilac,.mm-app.theme-dark .stat-peach,.mm-app.theme-dark .stat-mint{background:#2c3b30;color:#b8d9bf}
+.mm-app.theme-dark .storage-copy span,.mm-app.theme-dark .storage-card>small,.mm-app.theme-dark .stat-card span,.mm-app.theme-dark .note-meta,.mm-app.theme-dark .note-card-footer,.mm-app.theme-dark .note-tags span,.mm-app.theme-dark .empty-state p,.mm-app.theme-dark .whatsapp-tip p,.mm-app.theme-dark .modal-head p,.mm-app.theme-dark .drop-zone>span,.mm-app.theme-dark .drop-zone small,.mm-app.theme-dark .auto-organize-toggle small{color:#a1aaa1}
+.mm-app.theme-dark .welcome-panel{background:#232f26;border-color:#36483a}
+.mm-app.theme-dark .welcome-copy h2,.mm-app.theme-dark .welcome-copy p{color:#e9eee8}
+.mm-app.theme-dark .welcome-copy h2 em{color:#b4d8bc}
+.mm-app.theme-dark .welcome-pill{background:#2d4031;color:#b4d8bc}
+.mm-app.theme-dark .welcome-button,.mm-app.theme-dark .primary-button,.mm-app.theme-dark .top-upload{background:#5a8765;color:#fff}
+.mm-app.theme-dark .welcome-button:hover,.mm-app.theme-dark .primary-button:hover,.mm-app.theme-dark .top-upload:hover{background:#6c9977}
+.mm-app.theme-dark .theme-toggle{background:#222823;border-color:#39433a;color:#c1d9c4}
+.mm-app.theme-dark .theme-toggle:hover,.mm-app.theme-dark .icon-button:hover,.mm-app.theme-dark .view-toggle .view-active{background:#304333;color:#c1dfc7}
+.mm-app.theme-dark .global-search input,.mm-app.theme-dark .subject-select select{color:#e9eee8}
+.mm-app.theme-dark .global-search input::placeholder{color:#89948b}
+.mm-app.theme-dark .note-cover{filter:brightness(.76) saturate(.78)}
+.mm-app.theme-dark .note-tags span{background:#2c332d}
+.mm-app.theme-dark .note-tags .sample-tag{background:#304333;color:#b8d9bf}
+.mm-app.theme-dark .action-menu button{color:#d6ddd5}
+.mm-app.theme-dark .action-menu button:hover{background:#2e372f}
+.mm-app.theme-dark .drop-zone{background:#1b211c;border-color:#4b6150}
+.mm-app.theme-dark .drop-zone-active{background:#29382d}
+.mm-app.theme-dark .drop-icon,.mm-app.theme-dark .auto-organize-icon{background:#304333;color:#b8d9bf}
+.mm-app.theme-dark .auto-organize-toggle{background:#202a22;border-color:#3a4b3d}
+.mm-app.theme-dark .toggle-track{background:#4b554c}
+.mm-app.theme-dark .toggle-track.toggle-on{background:#6b9976}
+.mm-app.theme-dark .hint-icon,.mm-app.theme-dark .whatsapp-mark{background:#2a3c2f;color:#9fd1ad}
+.mm-app.theme-dark .subject-select select,.mm-app.theme-dark .view-toggle{border-color:#39433a}
+.mm-app.theme-dark .modal-scrim{background:#080b09c9}
+.mm-app.theme-dark .text-button{color:#b8d9bf}
+.mm-app.theme-dark .toast{background:#dbe9dc;color:#243126}
+.mm-app.theme-dark .toast svg{color:#496e56}
+.mm-app.theme-dark .chat-panel,.mm-app.theme-dark .study-aside,.mm-app.theme-dark .message-bubble{background:#222823;border-color:#343c35;color:#e9eee8}
+.mm-app.theme-dark .chat-input,.mm-app.theme-dark .study-input{background:#1b211c;border-color:#39433a;color:#e9eee8}
+.mm-app.theme-dark .chat-message.assistant .message-bubble{background:#2a332b}
+.mm-app.theme-dark .theme-toggle:focus-visible{outline-color:#9fc7a8}
+@media(max-width:650px){.theme-toggle{width:33px;height:33px}}
