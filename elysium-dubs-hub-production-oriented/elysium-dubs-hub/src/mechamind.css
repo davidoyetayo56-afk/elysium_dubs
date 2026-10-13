@@ -96,3 +96,74 @@ button,input,select,textarea{transition:color .15s ease,background-color .15s ea
 .mm-app.theme-dark .chat-message.assistant .message-bubble{background:#2a332b}
 .mm-app.theme-dark .theme-toggle:focus-visible{outline-color:#9fc7a8}
 @media(max-width:650px){.theme-toggle{width:33px;height:33px}}
+
+
+/* Reliable page scrolling, including touch screens and short phone viewports. */
+html{min-height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+body{min-height:100%;min-width:320px;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:auto}
+#root{min-height:100vh;min-height:100dvh}
+.mm-app{min-height:100vh;min-height:100dvh;overflow:visible}
+.main-shell{min-height:100vh;min-height:100dvh;height:auto;overflow:visible}
+.page-content{min-height:calc(100vh - 72px);min-height:calc(100dvh - 72px);overflow:visible}
+.sidebar{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.study-layout{min-height:0}
+.chat-panel{min-height:480px}
+.chat-messages{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.modal-scrim{overflow-y:auto;align-items:start;-webkit-overflow-scrolling:touch}
+.upload-modal{max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain}
+.install-app-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 12px;border:1px solid #dce4d8;border-radius:10px;background:#f6f8f3;color:#496e56;font-size:11px;font-weight:700;white-space:nowrap}
+.install-app-button:hover{background:#e9eee5;border-color:#cbd9c9}
+.mm-app.theme-dark .install-app-button{background:#222823;border-color:#3a4b3d;color:#b8d9bf}
+.mm-app.theme-dark .install-app-button:hover{background:#304333}
+.cover-engineering{background:#e8eee4;color:#496e56}
+.mm-app.theme-dark .cover-engineering{background:#293a2d;color:#b8d9bf}
+@media(max-width:900px){
+  .page-content{padding-top:24px}
+  .sidebar{height:100vh;height:100dvh}
+  .notes-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .study-layout{grid-template-columns:minmax(0,1fr)}
+  .study-aside,.chat-panel{min-width:0}
+  .chat-panel{min-height:480px}
+}
+@media(max-width:650px){
+  .topbar{position:sticky;top:0;z-index:12}
+  .topbar-actions{gap:5px;min-width:0}
+  .breadcrumb{min-width:0;overflow:hidden;white-space:nowrap}
+  .breadcrumb strong{overflow:hidden;text-overflow:ellipsis}
+  .install-app-button{height:33px;padding:0 7px;gap:4px;font-size:10px;border-radius:9px}
+  .theme-toggle{width:33px;height:33px}
+  .top-upload{height:33px;min-width:33px}
+  .top-avatar{display:none}
+  .page-content{padding:20px 12px 22px}
+  .page-heading h1{font-size:clamp(24px,7vw,29px)}
+  .page-heading p{font-size:12px}
+  .welcome-copy p{font-size:12px}
+  .notes-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .note-card{min-width:0}
+  .note-cover{height:100px}
+  .note-card-body{padding:11px}
+  .note-card h3{font-size:12px;line-height:1.45;min-height:35px}
+  .note-card-footer{font-size:9px;gap:4px;flex-wrap:wrap}
+  .note-meta{font-size:10px}
+  .section-heading{gap:12px}
+  .library-tools{gap:8px;flex-wrap:wrap}
+  .subject-select select{min-width:0;max-width:185px;font-size:11px}
+  .modal-scrim{padding:10px;place-items:start center}
+  .upload-modal{width:100%;max-width:520px;margin:auto 0;border-radius:16px;padding:17px}
+  .drop-zone{padding:18px 12px;min-height:175px}
+  .auto-organize-toggle{padding:12px;gap:9px}
+  .auto-organize-toggle small{font-size:11px}
+  .study-page .page-heading{align-items:flex-start}
+  .chat-messages{max-height:none;min-height:230px}
+  .composer-footer span{font-size:10px}
+  .page-footer{font-size:10px}
+}
+@media(max-width:360px){
+  .topbar{padding:0 8px;gap:5px}
+  .breadcrumb{font-size:9px;gap:5px}
+  .install-app-button{width:32px;padding:0;font-size:0;gap:0}
+  .install-app-button svg{width:17px;height:17px}
+  .top-upload{padding:0 8px}
+  .notes-grid{gap:7px}
+  .note-card-body{padding:9px}
+}
