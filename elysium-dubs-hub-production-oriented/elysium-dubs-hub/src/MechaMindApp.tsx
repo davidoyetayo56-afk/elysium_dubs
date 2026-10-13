@@ -4,7 +4,7 @@ import {
   ArrowDownToLine, ArrowRight, BookOpen, Bookmark, BrainCircuit, CalendarDays,
   Check, ChevronDown, Clock3, Command, File, FileText, FolderOpen, Grid2X2,
   HardDrive, Image as ImageIcon, Library, List, Menu, MessageCircle, MoreHorizontal,
-  Plus, Search, Send, Settings2, Sparkles, Star, Trash2, UploadCloud, X, Zap
+  Moon, Plus, Search, Send, Settings2, Sparkles, Star, Sun, Trash2, UploadCloud, X, Zap
 } from 'lucide-react';
 import { backendConfigured, friendlyError, supabase } from './lib/supabase';
 
@@ -154,6 +154,9 @@ export default function MechaMindApp() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [autoOrganize, setAutoOrganize] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('mechamind-theme') === 'dark'; } catch { return false; }
+  });
   const [menuNote, setMenuNote] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [chatInput, setChatInput] = useState('');
@@ -176,6 +179,9 @@ export default function MechaMindApp() {
   useEffect(() => {
     if (ready) localStorage.setItem(META_KEY, JSON.stringify(notes));
   }, [notes, ready]);
+  useEffect(() => {
+    try { localStorage.setItem('mechamind-theme', darkMode ? 'dark' : 'light'); } catch { /* Theme still works for this session. */ }
+  }, [darkMode]);
   useEffect(() => {
     if (!toast) return;
     const id = window.setTimeout(() => setToast(''), 3200);
@@ -303,7 +309,7 @@ export default function MechaMindApp() {
     </article>;
   }
 
-  return <div className="mm-app">
+  return <div className={'mm-app ' + (darkMode ? 'theme-dark' : '')}>
     <aside className={'sidebar ' + (mobileNav ? 'sidebar-open' : '')}>
       <div className="brand-lockup"><div className="brand-symbol"><span>m</span><i /></div><div><strong>mecha<span>mind</span></strong><small>YOUR LEARNING SPACE</small></div><button className="mobile-close icon-button" onClick={() => setMobileNav(false)}><X size={19} /></button></div>
       <div className="workspace-label">WORKSPACE <ChevronDown size={13} /></div>
@@ -315,7 +321,7 @@ export default function MechaMindApp() {
     </aside>
 
     <main className="main-shell">
-      <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileNav(true)}><Menu size={20} /></button><div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{page}</strong></div><div className="topbar-actions"><label className="global-search"><Search size={17} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search your notes..." /><kbd><Command size={11} /> K</kbd></label><button className="top-upload" onClick={() => setUploadOpen(true)}><Plus size={17} /> <span>Add notes</span></button><div className="top-avatar">D</div></div></header>
+      <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileNav(true)}><Menu size={20} /></button><div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{page}</strong></div><div className="topbar-actions"><label className="global-search"><Search size={17} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search your notes..." /><kbd><Command size={11} /> K</kbd></label><button className="theme-toggle icon-button" aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} title={darkMode ? "Switch to light mode" : "Switch to dark mode"} onClick={() => setDarkMode(value => !value)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button><button className="top-upload" onClick={() => setUploadOpen(true)}><Plus size={17} /> <span>Add notes</span></button><div className="top-avatar">D</div></div></header>
 
       <div className="page-content">
         {page !== 'AI study desk' ? <>
