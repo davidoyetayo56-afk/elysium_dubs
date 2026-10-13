@@ -1,0 +1,13 @@
+project_id = "elysium-dubs-hub"
+
+[functions.paystack-initialize]
+verify_jwt = true
+
+[functions.paystack-verify]
+verify_jwt = true
+
+[functions.resource-download]
+verify_jwt = true
+
+[functions.paystack-webhook]
+verify_jwt = false
