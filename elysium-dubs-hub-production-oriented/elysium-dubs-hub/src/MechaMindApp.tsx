@@ -213,6 +213,20 @@ function localStudyReply(prompt: string): string {
   return "Let us break this down together. First, identify the key terms and what the question is asking. Next, connect the idea to a principle or equation, then work through a small example. I’ll keep the reasoning visible and add a quick check question. For a precise explanation of your lecture, import the file into your MechaMind library or paste the relevant excerpt here. Live AI answers need the secure AI service connected.";
 }
 
+function localStudyModeReply(prompt: string, mode: StudyMode): string {
+  if (mode === 'notes') {
+    const explanation = localStudyReply(prompt);
+    return "# Quick study notes: " + prompt.slice(0, 90) + "\n\n## Core explanation\n" + explanation + "\n\n## Revision checklist\n- Define the key terms in your own words.\n- Write down the governing formula and the meaning of each symbol.\n- Work through one example without looking at the answer.\n\n## Self-test\n1. State the main principle in one sentence.\n2. Give a small example that demonstrates it.\n\n**Preview limitation:** These are starter notes. Attach a lecture file and connect the live tutor for a complete, source-grounded set of notes.";
+  }
+  if (mode === 'analyze') {
+    return "## Let’s analyse your actual notes\n\nChoose **Analyse** on a file in My library, or paste a lecture excerpt into this chat. I need the note's text to identify its main ideas, definitions, equations, gaps and likely exam questions. I will not pretend to have analysed a file that has not been attached.";
+  }
+  if (mode === 'plan') {
+    return "# Study plan\n\n1. **Understand (10 minutes):** read the section and list unfamiliar terms.\n2. **Rebuild (10 minutes):** close the notes and explain the principle from memory.\n3. **Practise (15 minutes):** solve a worked problem or answer questions.\n4. **Review (5 minutes):** correct mistakes and record one question to revisit.\n\nTell me the topic and how much time you have for a more tailored plan.";
+  }
+  return localStudyReply(prompt);
+}
+
 function localDocumentStudy(documentText: string, documentName: string, mode: StudyMode): string {
   const clean = documentText.replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
   const lines = clean.split(/\n|(?<=[.!?])\s+/).map(line => line.trim()).filter(line => line.length > 22);
@@ -237,6 +251,14 @@ function localDocumentStudy(documentText: string, documentName: string, mode: St
     return "# Quick note analysis: " + name + "\n\n## At a glance\n- Readable text: approximately " + clean.length.toLocaleString() + " characters.\n- Paragraphs/lines detected: " + lines.length + ".\n- Repeated concepts detected: " + (keyTerms.slice(0, 6).map(item => item.split(' (')[0]).join(', ') || 'not enough data') + ".\n\n## Main ideas surfaced\n" + (summaryLines.length ? summaryLines.join('\n') : 'There is too little readable text to summarise.') + "\n\n## Key terms\n" + (keyTerms.length ? keyTerms.map(term => "- " + term).join('\n') : '- No clear key terms detected.') + "\n\n## Equations and statements to review\n" + (formulas.length ? formulas.map((formula, i) => (i + 1) + ". " + formula).join('\n') : 'No obvious equations were found. If the lecture is image-based or scanned, its text may not be extractable.') + "\n\n## Questions worth asking\n1. Which concept appears most often, and why is it important?\n2. Which assumptions or definitions are needed before applying the key equations?\n3. Can you find a worked example in the note and reproduce it without looking?\n4. Is any definition, step or conclusion left unexplained?\n\n**Limit:** This is a local pattern-based scan. It can identify repeated terms and equation-like lines, but cannot reliably judge whether a claim is correct. Use the connected AI tutor for deeper reasoning and error checks.";
   }
   return localStudyReply("Please help me study " + name);
+}
+
+function renderInlineMessage(line: string): ReactNode {
+  return line.split(/(\*\*[^*]+\*\*)/g).map((part, index) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={index}>{part.slice(2, -2)}</strong>
+      : part
+  );
 }
 
 function NeuralCanvas({ darkMode }: { darkMode: boolean }) {
@@ -309,7 +331,12 @@ export default function MechaMindApp() {
   const [dragging, setDragging] = useState(false);
   const [autoOrganize, setAutoOrganize] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
-    try { const savedTheme = localStorage.getItem('mechamind-theme'); return savedTheme ? savedTheme === 'dark' : true; } catch { return true; }
+    try {
+      const savedTheme = localStorage.getItem('mechamind-theme');
+      const migrated = localStorage.getItem('mechamind-deep-theme-v1') === '1';
+      if (!migrated) { localStorage.setItem('mechamind-deep-theme-v1', '1'); return true; }
+      return savedTheme ? savedTheme === 'dark' : true;
+    } catch { return true; }
   });
   const [menuNote, setMenuNote] = useState<string | null>(null);
   const [toast, setToast] = useState('');
@@ -415,7 +442,7 @@ export default function MechaMindApp() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = note.name + (blob.type === 'application/pdf' ? '.pdf' : '');
+    anchor.download = note.fileName ?? note.name + (blob.type === 'application/pdf' ? '.pdf' : '');
     anchor.click();
     URL.revokeObjectURL(url);
     notify('Your file is ready.');
@@ -430,6 +457,33 @@ export default function MechaMindApp() {
     setNotes(current => current.map(n => n.id === note.id ? { ...n, starred: !n.starred } : n));
     setMenuNote(null);
   }
+  async function saveGeneratedNote(noteContent: string) {
+    const heading = noteContent.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    const baseName = ('Study notes - ' + (activeDocumentName || heading || new Date().toLocaleDateString('en-GB')))
+      .replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 100);
+    const fileName = (baseName || 'MechaMind study notes') + '.md';
+    const blob = new Blob([noteContent], { type: 'text/markdown;charset=utf-8' });
+    const id = crypto.randomUUID();
+    try {
+      await vaultPut(id, blob);
+      await vaultPut('text-' + id, blob);
+      const metadata = inferNoteMetadata(fileName, noteContent);
+      const saved: Note = {
+        id, name: metadata.name || baseName, subject: metadata.subject || 'Other',
+        course: metadata.course || 'Unsorted', kind: 'Document', size: blob.size,
+        createdAt: new Date().toISOString(), starred: true,
+        tags: [...new Set([...metadata.tags, 'generated'])].slice(0, 4),
+        storageKey: id, fileName
+      };
+      setNotes(current => [saved, ...current.filter(note => !note.sample)]);
+      setPage('My library');
+      setSubject('All subjects');
+      notify('Saved to your private MechaMind library.');
+    } catch {
+      notify('Could not save this result to browser storage. Check available device storage.');
+    }
+  }
+
   async function runTutorPrompt(
     prompt: string,
     mode: StudyMode = studyMode,
@@ -464,12 +518,12 @@ export default function MechaMindApp() {
         }
       } else {
         await new Promise(resolve => window.setTimeout(resolve, 220));
-        setChat([...next, { role: 'assistant', content: documentText ? localDocumentStudy(documentText, documentName, mode) : localStudyReply(prompt) }]);
+        setChat([...next, { role: 'assistant', content: documentText ? localDocumentStudy(documentText, documentName, mode) : localStudyModeReply(prompt, mode) }]);
       }
     } catch (error) {
       const fallback = documentText
         ? 'The live AI service is unavailable, so here is a quick local pass instead.\n\n' + localDocumentStudy(documentText, documentName, mode) + '\n\nFor deeper AI reasoning, check the tutor service connection.'
-        : 'I could not reach the live AI service. Your library is still working locally. ' + friendlyError(error);
+        : localStudyModeReply(prompt, mode) + '\n\nLive AI connection note: ' + friendlyError(error);
       setChat([...next, { role: 'assistant', content: fallback }]);
     } finally {
       setChatBusy(false);
@@ -648,7 +702,7 @@ export default function MechaMindApp() {
             {filteredNotes.length ? <div className={'notes-grid ' + (view === 'list' ? 'list-view' : '')}>{filteredNotes.map(note => <NoteCard key={note.id} note={note} />)}</div> : <div className="empty-state"><div className="empty-icon"><FolderOpen size={25} /></div><h3>No notes found</h3><p>Try another search or import a lecture file to start your collection.</p><button className="primary-button" onClick={() => setUploadOpen(true)}><Plus size={16} /> Add a note</button></div>}
           </section>
           {page === 'Overview' && <section className="whatsapp-tip"><div className="whatsapp-mark"><MessageCircle size={21} /></div><div><strong>Notes arriving through WhatsApp?</strong><p>Open the lecture in WhatsApp, save or share the attachment to your device, then import it here. Direct WhatsApp linking is a future upgrade.</p></div><button onClick={() => setUploadOpen(true)}>Import a file <ArrowRight size={15} /></button></section>}
-        </> : <section className="study-page"><div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> THINK IT THROUGH</div><h1>AI study desk<span className="heading-period">.</span></h1><p>One question can unlock a whole topic. Start anywhere.</p></div><div className="ai-status"><span /> {backendConfigured ? 'AI service configured' : 'Study preview'}</div></div><div className="study-layout"><aside className="study-aside"><div className="study-aside-icon"><BrainCircuit size={25} /></div><h2>Learn for understanding.</h2><p>Bring a question, a tricky formula or a concept you want to see from a different angle.</p><div className="study-divider" /><span className="section-kicker">YOUR NEXT STUDY MOVES</span><button onClick={() => setChatInput(personalStudyPaths[0].prompt)}><FileText size={16} /><span><b>CHM 101 deep dive</b><small>Balancing + stoichiometry</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[1].prompt)}><BrainCircuit size={16} /><span><b>Check the vector field</b><small>Curl, domain + circulation</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[2].prompt)}><Zap size={16} /><span><b>Derive motion equations</b><small>Start from v = u + at</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[3].prompt)}><BookOpen size={16} /><span><b>Map the Ligron path</b><small>Learning into real prototypes</small></span><ArrowRight size={15} /></button><div className="study-note-link"><BrainCircuit size={17} /><span><b>Your learning style</b><small>Step-by-step reasoning, worked calculations, diagrams where useful, and short quizzes that test understanding.</small></span></div></aside><div className="chat-panel"><div className="chat-panel-head"><div className="chat-bot-icon"><Sparkles size={18} /></div><div><strong>David's MechaMind companion</strong><small>Mechatronics · clear steps · real builds</small></div><button className="icon-button" onClick={() => { setChat([{ role: 'assistant', content: chatWelcome }]); setActiveDocumentText(''); setActiveDocumentName(''); setStudyMode('explain'); }}><MoreHorizontal size={18} /></button></div><div className="study-mode-picker" role="group" aria-label="Choose study mode"><span>MODE</span><button className={studyMode === 'explain' ? 'mode-active' : ''} onClick={() => setStudyMode('explain')} type="button">Explain</button><button className={studyMode === 'notes' ? 'mode-active' : ''} onClick={() => setStudyMode('notes')} type="button">Make notes</button><button className={studyMode === 'analyze' ? 'mode-active' : ''} onClick={() => setStudyMode('analyze')} type="button">Analyse</button><button className={studyMode === 'quiz' ? 'mode-active' : ''} onClick={() => setStudyMode('quiz')} type="button">Quiz</button><button className={studyMode === 'plan' ? 'mode-active' : ''} onClick={() => setStudyMode('plan')} type="button">Study plan</button></div>{activeDocumentName && <div className="active-document-pill"><FileText size={14} /><span>Using note: <strong>{activeDocumentName}</strong></span><button type="button" aria-label="Stop using this note" onClick={() => { setActiveDocumentName(''); setActiveDocumentText(''); }}>×</button></div>}<div className="chat-messages">{chat.map((message, index) => <div key={index} className={'chat-message ' + (message.role === 'user' ? 'user-message' : '')}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={15} /> : 'D'}</div><div className="message-bubble">{message.content.split('\n').map((line, i) => <p key={i}>{line || '\u00a0'}</p>)}</div></div>)}{chatBusy && <div className="chat-message"><div className="message-avatar"><Sparkles size={15} /></div><div className="typing-dots"><i /><i /><i /></div></div>}<div ref={dropRef} /></div><form className="chat-composer" onSubmit={sendQuestion}><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={studyMode === 'notes' ? 'Paste lecture text or ask for structured notes…' : studyMode === 'analyze' ? 'Ask about a note, or analyse the attached file…' : studyMode === 'quiz' ? 'Choose a topic to be quizzed on…' : 'Ask anything you’re learning…'} rows={2} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendQuestion(e as unknown as FormEvent); } }} /><div className="composer-footer"><span><Sparkles size={13} /> Check the reasoning, not just the result</span><button type="submit" disabled={!chatInput.trim() || chatBusy} aria-label="Send message"><Send size={17} /></button></div></form><div className="chat-disclaimer">PDF, DOCX and text extraction runs in this browser. Extracted text is sent to the secure AI tutor only when you ask it to study a note; image-only scanned PDFs need OCR, which is not enabled yet.</div></div></div></section>}
+        </> : <section className="study-page"><div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> THINK IT THROUGH</div><h1>AI study desk<span className="heading-period">.</span></h1><p>One question can unlock a whole topic. Start anywhere.</p></div><div className="ai-status"><span /> {backendConfigured ? 'AI service configured' : 'Study preview'}</div></div><div className="study-layout"><aside className="study-aside"><div className="study-aside-icon"><BrainCircuit size={25} /></div><h2>Learn for understanding.</h2><p>Bring a question, a tricky formula or a concept you want to see from a different angle.</p><div className="study-divider" /><span className="section-kicker">YOUR NEXT STUDY MOVES</span><button onClick={() => setChatInput(personalStudyPaths[0].prompt)}><FileText size={16} /><span><b>CHM 101 deep dive</b><small>Balancing + stoichiometry</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[1].prompt)}><BrainCircuit size={16} /><span><b>Check the vector field</b><small>Curl, domain + circulation</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[2].prompt)}><Zap size={16} /><span><b>Derive motion equations</b><small>Start from v = u + at</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[3].prompt)}><BookOpen size={16} /><span><b>Map the Ligron path</b><small>Learning into real prototypes</small></span><ArrowRight size={15} /></button><div className="study-note-link"><BrainCircuit size={17} /><span><b>Your learning style</b><small>Step-by-step reasoning, worked calculations, diagrams where useful, and short quizzes that test understanding.</small></span></div></aside><div className="chat-panel"><div className="chat-panel-head"><div className="chat-bot-icon"><Sparkles size={18} /></div><div><strong>David's MechaMind companion</strong><small>Mechatronics · clear steps · real builds</small></div><button className="icon-button" onClick={() => { setChat([{ role: 'assistant', content: chatWelcome }]); setActiveDocumentText(''); setActiveDocumentName(''); setStudyMode('explain'); }}><MoreHorizontal size={18} /></button></div><div className="study-mode-picker" role="group" aria-label="Choose study mode"><span>MODE</span><button className={studyMode === 'explain' ? 'mode-active' : ''} onClick={() => setStudyMode('explain')} type="button">Explain</button><button className={studyMode === 'notes' ? 'mode-active' : ''} onClick={() => setStudyMode('notes')} type="button">Make notes</button><button className={studyMode === 'analyze' ? 'mode-active' : ''} onClick={() => setStudyMode('analyze')} type="button">Analyse</button><button className={studyMode === 'quiz' ? 'mode-active' : ''} onClick={() => setStudyMode('quiz')} type="button">Quiz</button><button className={studyMode === 'plan' ? 'mode-active' : ''} onClick={() => setStudyMode('plan')} type="button">Study plan</button></div>{activeDocumentName && <div className="active-document-pill"><FileText size={14} /><span>Using note: <strong>{activeDocumentName}</strong></span><button type="button" aria-label="Stop using this note" onClick={() => { setActiveDocumentName(''); setActiveDocumentText(''); }}>×</button></div>}<div className="chat-messages">{chat.map((message, index) => <div key={index} className={'chat-message ' + (message.role === 'user' ? 'user-message' : '')}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={15} /> : 'D'}</div><div className="message-bubble">{message.content.split('\n').map((line, i) => { const value = line.trim(); if (!value) return <div key={i} className="chat-md-spacer" />; if (value.startsWith('### ')) return <h5 key={i} className="chat-md-h5">{renderInlineMessage(value.slice(4))}</h5>; if (value.startsWith('## ')) return <h4 key={i} className="chat-md-h4">{renderInlineMessage(value.slice(3))}</h4>; if (value.startsWith('# ')) return <h3 key={i} className="chat-md-h3">{renderInlineMessage(value.slice(2))}</h3>; if (/^[-*]\s/.test(value)) return <p key={i} className="chat-md-list">• {renderInlineMessage(value.slice(2))}</p>; if (/^\d+\.\s/.test(value)) return <p key={i} className="chat-md-list">{renderInlineMessage(value)}</p>; return <p key={i}>{renderInlineMessage(value)}</p>; })}{message.role === 'assistant' && message.content.length > 220 && <button type="button" className="save-generated-note" onClick={() => void saveGeneratedNote(message.content)}><Bookmark size={13} /> Save result to my notes</button>}</div></div>)}{chatBusy && <div className="chat-message"><div className="message-avatar"><Sparkles size={15} /></div><div className="typing-dots"><i /><i /><i /></div></div>}<div ref={dropRef} /></div><form className="chat-composer" onSubmit={sendQuestion}><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={studyMode === 'notes' ? 'Paste lecture text or ask for structured notes…' : studyMode === 'analyze' ? 'Ask about a note, or analyse the attached file…' : studyMode === 'quiz' ? 'Choose a topic to be quizzed on…' : 'Ask anything you’re learning…'} rows={2} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendQuestion(e as unknown as FormEvent); } }} /><div className="composer-footer"><span><Sparkles size={13} /> Check the reasoning, not just the result</span><button type="submit" disabled={!chatInput.trim() || chatBusy} aria-label="Send message"><Send size={17} /></button></div></form><div className="chat-disclaimer">PDF, DOCX and text extraction runs in this browser. Extracted text is sent to the secure AI tutor only when you ask it to study a note; image-only scanned PDFs need OCR, which is not enabled yet.</div></div></div></section>}
           <footer className="page-footer"><span>Made for curious minds <span className="footer-spark">✳</span></span><span><span className="privacy-dot" /> Your files stay on this device in this version</span></footer>
       </div>
     </main>
