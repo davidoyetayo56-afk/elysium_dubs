@@ -1,14 +1,14 @@
 {
   "id": "./",
-  "name": "MechaMind Student Notes",
+  "name": "MechaMind — Your learning space",
   "short_name": "MechaMind",
-  "description": "A calm, private library for lecture notes and study sessions.",
+  "description": "A private, low-distraction library for lecture notes and focused study.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f7f6f1",
-  "theme_color": "#496e56",
+  "background_color": "#08090b",
+  "theme_color": "#08090b",
   "categories": [
     "education",
     "productivity"
