@@ -4,7 +4,7 @@ import {
   ArrowDownToLine, ArrowRight, BookOpen, Bookmark, BrainCircuit, CalendarDays,
   Check, ChevronDown, Clock3, Command, File, FileText, FolderOpen, Grid2X2,
   HardDrive, Image as ImageIcon, Library, List, Menu, MessageCircle, MoreHorizontal,
-  Moon, Plus, Search, Send, Settings2, Sparkles, Star, Sun, Trash2, UploadCloud, X, Zap
+  Download, Moon, Plus, Search, Send, Settings2, Sparkles, Star, Sun, Trash2, UploadCloud, X, Zap
 } from 'lucide-react';
 import { backendConfigured, friendlyError, supabase } from './lib/supabase';
 
@@ -14,12 +14,13 @@ type Note = {
   storageKey?: string; sample?: boolean;
 };
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
+type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }> };
 type Page = 'Overview' | 'My library' | 'Starred' | 'AI study desk';
 
 const DB_NAME = 'mechamind-vault';
 const STORE = 'files';
 const META_KEY = 'mechamind-notes-v1';
-const subjects = ['All subjects', 'Mechatronics', 'Mathematics', 'Physics', 'Chemistry', 'Programming', 'Electronics', 'Other'];
+const subjects = ['All subjects', 'Engineering', 'Mathematics', 'Physics', 'Chemistry', 'Programming', 'Electronics', 'Other'];
 
 function openVault(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -80,7 +81,7 @@ function fileIcon(kind: string) {
   return <File size={19} />;
 }
 const sampleNotes: Note[] = [
-  { id: 'sample-1', name: 'Introduction to Mechatronics', subject: 'Mechatronics', course: 'MCT 101', kind: 'PDF', size: 2450000, createdAt: '2026-10-12T10:00:00.000Z', starred: true, tags: ['lecture', 'foundations'], sample: true },
+  { id: 'sample-1', name: 'Introduction to Mechatronics Engineering', subject: 'Engineering', course: 'MCT 101', kind: 'PDF', size: 2450000, createdAt: '2026-10-12T10:00:00.000Z', starred: true, tags: ['lecture', 'foundations'], sample: true },
   { id: 'sample-2', name: 'Vectors and Scalar Products', subject: 'Mathematics', course: 'MTH 101', kind: 'PDF', size: 1380000, createdAt: '2026-10-11T10:00:00.000Z', starred: false, tags: ['week 3', 'revision'], sample: true },
   { id: 'sample-3', name: 'Newtonian Mechanics: Lecture 2', subject: 'Physics', course: 'PHY 101', kind: 'Document', size: 820000, createdAt: '2026-10-10T10:00:00.000Z', starred: true, tags: ['mechanics'], sample: true },
   { id: 'sample-4', name: 'Basic Circuit Analysis', subject: 'Electronics', course: 'EEE 102', kind: 'PDF', size: 3100000, createdAt: '2026-10-08T10:00:00.000Z', starred: false, tags: ['circuits', 'week 2'], sample: true },
@@ -119,7 +120,7 @@ async function aiOrganize(fileName: string, content: string) {
   if (!sessionData.session) return null;
   const { data, error } = await supabase.functions.invoke('ai-tutor', {
     body: { mode: 'organize', messages: [{ role: 'user', content:
-      'Organise this student lecture file. Return ONLY a JSON object with keys name, subject, course, tags. subject must be one of Mechatronics, Mathematics, Physics, Chemistry, Programming, Electronics, Other. tags must be an array of 1-4 short strings. Use filename and excerpt; do not invent facts.\nFilename: ' + fileName + '\nExcerpt: ' + content.slice(0, 3500)
+      'Organise this student lecture file. Return ONLY a JSON object with keys name, subject, course, tags. subject must be one of Engineering, Mathematics, Physics, Chemistry, Programming, Electronics, Other. tags must be an array of 1-4 short strings. Use filename and excerpt; do not invent facts.\nFilename: ' + fileName + '\nExcerpt: ' + content.slice(0, 3500)
     }] }
   });
   if (error || typeof data?.reply !== 'string') return null;
@@ -127,7 +128,7 @@ async function aiOrganize(fileName: string, content: string) {
     const match = data.reply.match(/\{[\s\S]*\}/);
     if (!match) return null;
     const parsed = JSON.parse(match[0]);
-    const allowed = ['Mechatronics', 'Mathematics', 'Physics', 'Chemistry', 'Programming', 'Electronics', 'Other'];
+    const allowed = ['Engineering', 'Mathematics', 'Physics', 'Chemistry', 'Programming', 'Electronics', 'Other'];
     return {
       name: typeof parsed.name === 'string' ? parsed.name.slice(0, 120) : fileName.replace(/\.[^/.]+$/, ''),
       subject: allowed.includes(parsed.subject) ? parsed.subject : 'Other',
@@ -163,6 +164,7 @@ export default function MechaMindApp() {
   const [chatBusy, setChatBusy] = useState(false);
   const [chat, setChat] = useState<ChatMessage[]>([{ role: 'assistant', content: 'Hi! I’m your study desk. Ask a question, choose a topic, or bring a lecture note into the conversation. We’ll work through it step by step.' }]);
   const [mobileNav, setMobileNav] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [ready, setReady] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -170,7 +172,7 @@ export default function MechaMindApp() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(META_KEY);
-      setNotes(stored ? JSON.parse(stored) as Note[] : sampleNotes);
+      setNotes(stored ? (JSON.parse(stored) as Note[]).map(note => note.subject === 'Mechatronics' ? { ...note, subject: 'Engineering' } : note) : sampleNotes);
     } catch {
       setNotes(sampleNotes);
     }
@@ -292,12 +294,12 @@ export default function MechaMindApp() {
     { name: 'AI study desk', icon: <BrainCircuit size={18} /> },
   ];
 
-  function choosePage(next: Page) { setPage(next); setMobileNav(false); setSubject('All subjects'); }
+  async function installApp() {\n    if (installPrompt) {\n      await installPrompt.prompt();\n      const choice = await installPrompt.userChoice;\n      if (choice.outcome === 'accepted') notify('Installing your study app…');\n      else notify('No problem. You can install it whenever you like.');\n      setInstallPrompt(null);\n      return;\n    }\n    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);\n    if (isIOS) notify('On iPhone/iPad: tap Share in Safari, then Add to Home Screen.');\n    else if (window.matchMedia('(display-mode: standalone)').matches) notify('The app is already installed on this device.');\n    else notify('If your browser supports installation, open its menu and choose Install app or Add to Home screen.');\n  }\n\n  function choosePage(next: Page) { setPage(next); setMobileNav(false); setSubject('All subjects'); }
   function NoteCard({ note }: { note: Note }) {
     return <article className={'note-card ' + (view === 'list' ? 'note-list' : '')}>
       <div className={'note-cover cover-' + (note.subject.toLowerCase().replace(/[^a-z]/g, '') || 'other')}>
         <div className="cover-top"><span className="file-kind">{fileIcon(note.kind)} {note.kind}</span><button className={'icon-button star-button ' + (note.starred ? 'is-starred' : '')} aria-label="Toggle favourite" onClick={() => toggleStar(note)}><Star size={17} fill={note.starred ? 'currentColor' : 'none'} /></button></div>
-        <div className="cover-mark">{note.subject === 'Mathematics' ? '∑' : note.subject === 'Physics' ? '∿' : note.subject === 'Electronics' ? '⌁' : note.subject === 'Mechatronics' ? '⌘' : '✳'}</div>
+        <div className="cover-mark">{note.subject === 'Mathematics' ? '∑' : note.subject === 'Physics' ? '∿' : note.subject === 'Electronics' ? '⌁' : note.subject === 'Engineering' ? '⚙' : '✳'}</div>
         <span className="cover-course">{note.course}</span>
       </div>
       <div className="note-card-body">
@@ -321,7 +323,7 @@ export default function MechaMindApp() {
     </aside>
 
     <main className="main-shell">
-      <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileNav(true)}><Menu size={20} /></button><div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{page}</strong></div><div className="topbar-actions"><label className="global-search"><Search size={17} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search your notes..." /><kbd><Command size={11} /> K</kbd></label><button className="theme-toggle icon-button" aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} title={darkMode ? "Switch to light mode" : "Switch to dark mode"} onClick={() => setDarkMode(value => !value)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button><button className="top-upload" onClick={() => setUploadOpen(true)}><Plus size={17} /> <span>Add notes</span></button><div className="top-avatar">D</div></div></header>
+      <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileNav(true)}><Menu size={20} /></button><div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{page}</strong></div><div className="topbar-actions"><label className="global-search"><Search size={17} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search your notes..." /><kbd><Command size={11} /> K</kbd></label><button className="install-app-button" onClick={() => void installApp()} title="Install app on this device"><Download size={16} /><span>Install app</span></button><button className="theme-toggle icon-button" aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} title={darkMode ? "Switch to light mode" : "Switch to dark mode"} onClick={() => setDarkMode(value => !value)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button><button className="top-upload" onClick={() => setUploadOpen(true)}><Plus size={17} /> <span>Add notes</span></button><div className="top-avatar">D</div></div></header>
 
       <div className="page-content">
         {page !== 'AI study desk' ? <>
