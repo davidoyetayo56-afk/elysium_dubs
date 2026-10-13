@@ -86,6 +86,57 @@ const sampleNotes: Note[] = [
   { id: 'sample-4', name: 'Basic Circuit Analysis', subject: 'Electronics', course: 'EEE 102', kind: 'PDF', size: 3100000, createdAt: '2026-10-08T10:00:00.000Z', starred: false, tags: ['circuits', 'week 2'], sample: true },
 ];
 
+
+function inferNoteMetadata(fileName: string, content = '') {
+  const clean = fileName.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const text = (clean + ' ' + content.slice(0, 5000)).toLowerCase();
+  const rules: Array<[string, RegExp]> = [
+    ['Mathematics', /\b(math|mathematics|calculus|algebra|vector|matrix|integration|differentiation|mth\s?10\d|mth\s?20\d)\b/],
+    ['Physics', /\b(physics|mechanics|newton|motion|force|energy|thermodynamics|phy\s?10\d|phy\s?20\d)\b/],
+    ['Chemistry', /\b(chemistry|chemical|molecule|atom|reaction|organic|inorganic|chm\s?10\d|chm\s?20\d)\b/],
+    ['Programming', /\b(programming|python|javascript|typescript|algorithm|software|coding|computer science|csc\s?10\d)\b/],
+    ['Electronics', /\b(electronics|circuit|resistor|capacitor|voltage|current|ohm|digital logic|eee\s?10\d)\b/],
+    ['Mechatronics', /\b(mechatronics|robotics|robot|sensor|actuator|control system|embedded|mct\s?10\d)\b/],
+  ];
+  const matched = rules.find(([, pattern]) => pattern.test(text));
+  const courseMatch = (clean + ' ' + content.slice(0, 1000)).match(/\b(?:MCT|MTH|PHY|CHM|EEE|CSC|ENG|GNS)\s?[-]?\s?\d{3}\b/i);
+  const tags = ['lecture', 'revision', 'assignment', 'practical', 'laboratory', 'worked examples', 'exam prep', 'week 1', 'week 2', 'week 3'].filter(tag => text.includes(tag)).slice(0, 3);
+  if (!tags.length) tags.push('lecture');
+  if (/\b(assignment|homework|coursework)\b/.test(text) && !tags.includes('assignment')) tags.push('assignment');
+  if (/\b(exam|past question|revision|test)\b/.test(text) && !tags.includes('revision')) tags.push('revision');
+  return { name: clean || fileName, subject: matched?.[0] ?? 'Other', course: courseMatch ? courseMatch[0].toUpperCase().replace(/\s+/g, ' ') : 'Unsorted', tags: [...new Set(tags)].slice(0, 4) };
+}
+async function readableText(file: File): Promise<string> {
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  if (['txt', 'md', 'csv', 'json', 'html', 'xml', 'rtf'].includes(extension) || file.type.startsWith('text/')) {
+    return (await file.text()).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 5000);
+  }
+  return '';
+}
+async function aiOrganize(fileName: string, content: string) {
+  if (!backendConfigured || !supabase || !content.trim()) return null;
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) return null;
+  const { data, error } = await supabase.functions.invoke('ai-tutor', {
+    body: { mode: 'organize', messages: [{ role: 'user', content:
+      'Organise this student lecture file. Return ONLY a JSON object with keys name, subject, course, tags. subject must be one of Mechatronics, Mathematics, Physics, Chemistry, Programming, Electronics, Other. tags must be an array of 1-4 short strings. Use filename and excerpt; do not invent facts.\nFilename: ' + fileName + '\nExcerpt: ' + content.slice(0, 3500)
+    }] }
+  });
+  if (error || typeof data?.reply !== 'string') return null;
+  try {
+    const match = data.reply.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]);
+    const allowed = ['Mechatronics', 'Mathematics', 'Physics', 'Chemistry', 'Programming', 'Electronics', 'Other'];
+    return {
+      name: typeof parsed.name === 'string' ? parsed.name.slice(0, 120) : fileName.replace(/\.[^/.]+$/, ''),
+      subject: allowed.includes(parsed.subject) ? parsed.subject : 'Other',
+      course: typeof parsed.course === 'string' ? parsed.course.slice(0, 30) : 'Unsorted',
+      tags: Array.isArray(parsed.tags) ? parsed.tags.filter((tag: unknown) => typeof tag === 'string').slice(0, 4).map((tag: string) => tag.slice(0, 30)) : ['lecture'],
+    };
+  } catch { return null; }
+}
+
 function localStudyReply(prompt: string): string {
   const p = prompt.toLowerCase();
   if (/newton|force|acceleration/.test(p)) return 'Start with Newton’s second law: F = ma. F is the net force in newtons, m is mass in kilograms, and a is acceleration in m/s². Rearrange to a = F/m. Example: a 12 N force on a 3 kg object gives a = 12/3 = 4 m/s². Try one: what acceleration would a 20 N force produce on a 5 kg object?';
@@ -102,6 +153,7 @@ export default function MechaMindApp() {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [autoOrganize, setAutoOrganize] = useState(true);
   const [menuNote, setMenuNote] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [chatInput, setChatInput] = useState('');
@@ -151,11 +203,17 @@ export default function MechaMindApp() {
       const id = crypto.randomUUID();
       try { await vaultPut(id, file); }
       catch { notify('Browser storage could not save that file. Try a smaller file or check available storage.'); continue; }
-      const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
+      const extractedText = autoOrganize ? await readableText(file).catch(() => '') : '';
+      const guessed = autoOrganize ? inferNoteMetadata(file.name, extractedText) : {
+        name: file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim() || file.name,
+        subject: 'Other', course: 'Unsorted', tags: ['new import']
+      };
+      const aiMetadata = autoOrganize && extractedText.length > 30 ? await aiOrganize(file.name, extractedText).catch(() => null) : null;
+      const metadata = aiMetadata ?? guessed;
       added.push({
-        id, name: cleanName || file.name, subject: 'Other', course: 'Unsorted',
+        id, name: metadata.name || guessed.name, subject: metadata.subject || 'Other', course: metadata.course || 'Unsorted',
         kind: fileKind(file.name), size: file.size, createdAt: new Date().toISOString(),
-        starred: false, tags: ['new import'], storageKey: id
+        starred: false, tags: metadata.tags?.length ? metadata.tags : ['lecture'], storageKey: id
       });
     }
     if (added.length) {
@@ -163,7 +221,7 @@ export default function MechaMindApp() {
       setSubject('All subjects');
       setPage('My library');
       setUploadOpen(false);
-      notify(added.length + (added.length === 1 ? ' file added to your library.' : ' files added to your library.'));
+      notify(added.length + (added.length === 1 ? ' file added and organised.' : ' files added and organised.') + (autoOrganize ? ' Text files are analysed; other files use filename clues.' : ''));
     }
   }
   async function downloadNote(note: Note) {
@@ -283,7 +341,7 @@ export default function MechaMindApp() {
                 <span className="orbit-spark">✦</span>
               </div>
             </section>
-          )
+          )}
           <section className="stats-row"><div className="stat-card"><div className="stat-icon stat-lilac"><Library size={18} /></div><div><span>Total notes</span><strong>{notes.filter(n => !n.sample).length}<small>{notes.some(n => n.sample) ? ' + samples' : ' files'}</small></strong></div><span className="stat-trend"><ArrowRight size={14} /></span></div><div className="stat-card"><div className="stat-icon stat-peach"><Bookmark size={18} /></div><div><span>Starred notes</span><strong>{starredCount}<small> saved for later</small></strong></div><span className="stat-trend"><Star size={14} /></span></div><div className="stat-card"><div className="stat-icon stat-mint"><CalendarDays size={18} /></div><div><span>Study rhythm</span><strong>{savedCount ? 'Building' : 'Ready'}<small> one step at a time</small></strong></div><span className="stat-trend"><Zap size={14} /></span></div></section>}
           <section className="library-section"><div className="section-heading"><div><div className="section-kicker">{page === 'Starred' ? 'YOUR FAVOURITES' : page === 'My library' ? 'THE COLLECTION' : 'PICK UP WHERE YOU LEFT OFF'}</div><h2>{page === 'Starred' ? 'Saved for later' : page === 'My library' ? 'All your notes' : 'Recently organised'} <span>{filteredNotes.length}</span></h2></div><div className="library-tools"><label className="subject-select"><select value={subject} onChange={e => setSubject(e.target.value)}>{subjects.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={15} /></label><div className="view-toggle"><button aria-label="Grid view" className={view === 'grid' ? 'view-active' : ''} onClick={() => setView('grid')}><Grid2X2 size={16} /></button><button aria-label="List view" className={view === 'list' ? 'view-active' : ''} onClick={() => setView('list')}><List size={17} /></button></div></div></div>
             {filteredNotes.length ? <div className={'notes-grid ' + (view === 'list' ? 'list-view' : '')}>{filteredNotes.map(note => <NoteCard key={note.id} note={note} />)}</div> : <div className="empty-state"><div className="empty-icon"><FolderOpen size={25} /></div><h3>No notes found</h3><p>Try another search or import a lecture file to start your collection.</p><button className="primary-button" onClick={() => setUploadOpen(true)}><Plus size={16} /> Add a note</button></div>}
@@ -295,7 +353,7 @@ export default function MechaMindApp() {
     </main>
 
     {mobileNav && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileNav(false)} />}
-    {uploadOpen && <div className="modal-scrim" onClick={() => setUploadOpen(false)}><div className="upload-modal" onClick={e => e.stopPropagation()}><div className="modal-head"><div><span className="section-kicker">GROW YOUR LIBRARY</span><h2>Bring your notes in.</h2><p>PDFs, slides, documents, images and audio files are welcome.</p></div><button className="icon-button" onClick={() => setUploadOpen(false)}><X size={19} /></button></div><div className={'drop-zone ' + (dragging ? 'drop-zone-active' : '')} onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); void importFiles(e.dataTransfer.files); }}><div className="drop-icon"><UploadCloud size={25} /></div><strong>Drag your files here</strong><span>or choose them from your device</span><button className="primary-button" onClick={() => fileInput.current?.click()}><Plus size={16} /> Choose files</button><small>Files are stored in this browser, not uploaded to a cloud server.</small></div><input ref={fileInput} type="file" multiple hidden onChange={e => { if (e.target.files) void importFiles(e.target.files); e.currentTarget.value = ''; }} /><div className="import-hint"><div className="hint-icon"><MessageCircle size={17} /></div><div><strong>Import from WhatsApp</strong><p>Save the document from WhatsApp to your device first, then select it above. You can also drag files straight from your Downloads folder.</p></div></div><div className="modal-bottom"><span><Check size={14} /> No subscription. No upload limit set by us.</span><button className="text-button" onClick={() => setUploadOpen(false)}>Done</button></div></div></div>}
+    {uploadOpen && <div className="modal-scrim" onClick={() => setUploadOpen(false)}><div className="upload-modal" onClick={e => e.stopPropagation()}><div className="modal-head"><div><span className="section-kicker">GROW YOUR LIBRARY</span><h2>Bring your notes in.</h2><p>PDFs, slides, documents, images and audio files are welcome.</p></div><button className="icon-button" onClick={() => setUploadOpen(false)}><X size={19} /></button></div><label className="auto-organize-toggle"><input type="checkbox" checked={autoOrganize} onChange={e => setAutoOrganize(e.target.checked)} /><span className="auto-organize-icon"><Sparkles size={17} /></span><span><strong>Auto-organise my notes</strong><small>Suggests subjects, course codes and tags. Connected AI can analyse readable text files.</small></span><span className={"toggle-track " + (autoOrganize ? "toggle-on" : "")}><i /></span></label><div className={'drop-zone ' + (dragging ? 'drop-zone-active' : '')} onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); void importFiles(e.dataTransfer.files); }}><div className="drop-icon"><UploadCloud size={25} /></div><strong>Drag your files here</strong><span>or choose them from your device</span><button className="primary-button" onClick={() => fileInput.current?.click()}><Plus size={16} /> Choose files</button><small>Files are stored in this browser, not uploaded to a cloud server.</small></div><input ref={fileInput} type="file" multiple hidden onChange={e => { if (e.target.files) void importFiles(e.target.files); e.currentTarget.value = ''; }} /><div className="import-hint"><div className="hint-icon"><MessageCircle size={17} /></div><div><strong>Import from WhatsApp</strong><p>Save the document from WhatsApp to your device first, then select it above. You can also drag files straight from your Downloads folder.</p></div></div><div className="modal-bottom"><span><Check size={14} /> No subscription. No upload limit set by us.</span><button className="text-button" onClick={() => setUploadOpen(false)}>Done</button></div></div></div>}
     {toast && <div className="toast"><Check size={16} /> {toast}</div>}
   </div>;
 }
