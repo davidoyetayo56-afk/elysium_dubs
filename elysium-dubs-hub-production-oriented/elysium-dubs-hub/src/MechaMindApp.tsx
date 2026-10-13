@@ -262,7 +262,28 @@ export default function MechaMindApp() {
       <div className="page-content">
         {page !== 'AI study desk' ? <>
           <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> YOUR IDEAS, IN GOOD COMPANY</div><h1>{pageTitle}<span className="heading-period">.</span></h1><p>{pageSubtitle}</p></div><button className="primary-button" onClick={() => setUploadOpen(true)}><UploadCloud size={17} /> Import notes <ArrowRight size={16} /></button></section>
-          {page === 'Overview' && <section className="welcome-panel"><div className="welcome-copy"><div className="welcome-pill"><Sparkles size={13} /> A LITTLE MORE CLARITY</div><h2>Make space for <em>big ideas.</em></h2><p>Drop your lecture files here. We’ll help you keep them tidy, so your brain can focus on the interesting bits.</p><button className="welcome-button" onClick={() => setUploadOpen(true)}>Add your first notes <ArrowRight size={16} /></button><div className="welcome-foot"><span><Check size={14} /> Private by default</span><span><Zap size={14} /> Works offline after loading</span></div></div><div className="welcome-illustration"><div className="orbit-ring ring-one" /><div className="orbit-ring ring-two" /><div className="floating-note floating-note-one"><FileText size={20} /><span><b>Lecture notes</b><small>Neatly organised</small></span></div><div className="floating-note floating-note-two"><BookOpen size={20} /><span><b>Study smarter</b><small>One topic at a time</small></span></div><div className="brain-orb"><BrainCircuit size={51} strokeWidth={1.35} /></div><span className="orbit-spark">✦</span></div></section>}
+          {page === 'Overview' && (
+            <section className="welcome-panel">
+              <div className="welcome-copy">
+                <div className="welcome-pill"><Sparkles size={13} /> A LITTLE MORE CLARITY</div>
+                <h2>Make space for <em>big ideas.</em></h2>
+                <p>Drop your lecture files here. We’ll help you keep them tidy, so your brain can focus on the interesting bits.</p>
+                <button className="welcome-button" onClick={() => setUploadOpen(true)}>Add your first notes <ArrowRight size={16} /></button>
+                <div className="welcome-foot">
+                  <span><Check size={14} /> Private by default</span>
+                  <span><Zap size={14} /> Works offline after loading</span>
+                </div>
+              </div>
+              <div className="welcome-illustration">
+                <div className="orbit-ring ring-one" />
+                <div className="orbit-ring ring-two" />
+                <div className="floating-note floating-note-one"><FileText size={20} /><span><b>Lecture notes</b><small>Neatly organised</small></span></div>
+                <div className="floating-note floating-note-two"><BookOpen size={20} /><span><b>Study smarter</b><small>One topic at a time</small></span></div>
+                <div className="brain-orb"><BrainCircuit size={51} strokeWidth={1.35} /></div>
+                <span className="orbit-spark">✦</span>
+              </div>
+            </section>
+          )
           <section className="stats-row"><div className="stat-card"><div className="stat-icon stat-lilac"><Library size={18} /></div><div><span>Total notes</span><strong>{notes.filter(n => !n.sample).length}<small>{notes.some(n => n.sample) ? ' + samples' : ' files'}</small></strong></div><span className="stat-trend"><ArrowRight size={14} /></span></div><div className="stat-card"><div className="stat-icon stat-peach"><Bookmark size={18} /></div><div><span>Starred notes</span><strong>{starredCount}<small> saved for later</small></strong></div><span className="stat-trend"><Star size={14} /></span></div><div className="stat-card"><div className="stat-icon stat-mint"><CalendarDays size={18} /></div><div><span>Study rhythm</span><strong>{savedCount ? 'Building' : 'Ready'}<small> one step at a time</small></strong></div><span className="stat-trend"><Zap size={14} /></span></div></section>}
           <section className="library-section"><div className="section-heading"><div><div className="section-kicker">{page === 'Starred' ? 'YOUR FAVOURITES' : page === 'My library' ? 'THE COLLECTION' : 'PICK UP WHERE YOU LEFT OFF'}</div><h2>{page === 'Starred' ? 'Saved for later' : page === 'My library' ? 'All your notes' : 'Recently organised'} <span>{filteredNotes.length}</span></h2></div><div className="library-tools"><label className="subject-select"><select value={subject} onChange={e => setSubject(e.target.value)}>{subjects.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={15} /></label><div className="view-toggle"><button aria-label="Grid view" className={view === 'grid' ? 'view-active' : ''} onClick={() => setView('grid')}><Grid2X2 size={16} /></button><button aria-label="List view" className={view === 'list' ? 'view-active' : ''} onClick={() => setView('list')}><List size={17} /></button></div></div></div>
             {filteredNotes.length ? <div className={'notes-grid ' + (view === 'list' ? 'list-view' : '')}>{filteredNotes.map(note => <NoteCard key={note.id} note={note} />)}</div> : <div className="empty-state"><div className="empty-icon"><FolderOpen size={25} /></div><h3>No notes found</h3><p>Try another search or import a lecture file to start your collection.</p><button className="primary-button" onClick={() => setUploadOpen(true)}><Plus size={16} /> Add a note</button></div>}
