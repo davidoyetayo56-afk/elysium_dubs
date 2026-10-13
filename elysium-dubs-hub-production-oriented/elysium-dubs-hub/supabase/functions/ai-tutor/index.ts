@@ -18,7 +18,7 @@ const modeInstructions: Record<string, string> = {
   explain: "Teach patiently and clearly. Define unfamiliar terms, show the reasoning step by step, use a worked example, and end with one short check-for-understanding question when appropriate.",
   quiz: "Act as a thoughtful examiner. Ask one question at a time, wait for the learner's attempt when possible, explain the reasoning behind corrections, and adapt the next question to their level.",
   plan: "Create realistic, time-boxed study plans with short breaks, active recall, worked practice, and a quick review. Ask a clarifying question only if a critical detail is missing.",
-  organize: "Classify a student lecture file from the filename and supplied excerpt. Return ONLY a valid JSON object with name, subject, course, tags. Use subject Mechatronics, Mathematics, Physics, Chemistry, Programming, Electronics, or Other. tags must be an array of 1 to 4 concise strings. Do not invent course codes or details; use Unsorted when unknown.",
+  organize: "Classify a student lecture file from the filename and supplied excerpt. Return ONLY a valid JSON object with name, subject, course, tags. Use subject Engineering, Mathematics, Physics, Chemistry, Programming, Electronics, or Other. Mechatronics Engineering is the user's degree programme, not a separate subject category; classify the note by its actual topic when clear. tags must be an array of 1 to 4 concise strings. Do not invent course codes or details; use Unsorted when unknown.",
 };
 
 Deno.serve(async (req: Request) => {
