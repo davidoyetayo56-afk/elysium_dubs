@@ -718,3 +718,5 @@ body{min-height:100%;min-width:320px;overflow-x:hidden;overflow-y:auto;-webkit-o
   .mm-app .settings-actions button{width:100%}
 }
 @media(prefers-reduced-motion:reduce){.mm-app .skeleton-line{animation:none}.mm-app .continue-progress span,.mm-app .reader-progress-track span,.mm-app .upload-progress-track span{transition:none}}
+
+.mm-app .settings-modal{max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain}
