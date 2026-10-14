@@ -1,3 +1,4 @@
+import './study-toolkit.css';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { BookOpenCheck, BrainCircuit, Check, ChevronRight, CircleHelp, Clock3, FileText, Layers, Plus, RotateCcw, Sparkles, Target, Trash2 } from 'lucide-react';
