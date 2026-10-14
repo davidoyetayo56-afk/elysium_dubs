@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import {
-  ArrowDownToLine, ArrowRight, BookOpen, Bookmark, BookmarkPlus, BrainCircuit, CalendarDays, Copy,
+  Activity, ArrowDownToLine, ArrowRight, BookOpen, Bookmark, BookmarkPlus, BrainCircuit, CalendarDays, Copy,
   Check, ChevronDown, Clock3, Command, File, FileText, FolderOpen, Grid2X2,
   HardDrive, Image as ImageIcon, Library, List, Menu, MessageCircle, MoreHorizontal,
   Download, Moon, Plus, Search, Send, Settings2, Sparkles, Star, Sun, Trash2, UploadCloud, X, Zap
 } from 'lucide-react';
 import { backendConfigured, friendlyError, supabase } from './lib/supabase';
+import StudyAnalytics from './StudyAnalytics';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import StudyToolkit, { type StudyNote, type StudySource } from './StudyToolkit';
 
@@ -18,13 +19,23 @@ type Note = {
 type StudyMode = 'explain' | 'notes' | 'analyze' | 'quiz' | 'plan';
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }> };
-type Page = 'Overview' | 'My library' | 'Starred' | 'AI study desk' | 'Study toolkit' | 'Course' | 'Reader';
+type Page = 'Overview' | 'My library' | 'Starred' | 'AI study desk' | 'Study toolkit' | 'Study analytics' | 'Course' | 'Reader';
 type ReadRecord = { ratio: number; scrollY?: number; maxScroll?: number; updatedAt: string };
 
 const DB_NAME = 'mechamind-vault';
 const STORE = 'files';
 const META_KEY = 'mechamind-notes-v1';
 const subjects = ['All subjects', 'Engineering', 'Mathematics', 'Physics', 'Chemistry', 'Programming', 'Electronics', 'Other'];
+const ACTIVITY_KEY = 'mechamind-study-events-v1';
+function recordStudyActivity(type: string, noteId?: string, noteName?: string) {
+  try {
+    const previous = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
+    const events = Array.isArray(previous) ? previous : [];
+    events.unshift({ id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)), type, at: new Date().toISOString(), ...(noteId ? { noteId } : {}), ...(noteName ? { noteName } : {}) });
+    localStorage.setItem(ACTIVITY_KEY, JSON.stringify(events.slice(0, 500)));
+    window.dispatchEvent(new Event('mechamind-activity-updated'));
+  } catch { /* Study analytics are optional if local storage is unavailable. */ }
+}
 
 function openVault(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -448,6 +459,20 @@ export default function MechaMindApp() {
   }, [page, readerNoteId]);
   useEffect(() => {
     if (page !== 'Reader' || !readerNoteId || readerLoading) return;
+    let visibleSeconds = 0;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      visibleSeconds += 15;
+      if (visibleSeconds >= 60) {
+        visibleSeconds -= 60;
+        recordStudyActivity('reading-minute', readerNoteId, notes.find(note => note.id === readerNoteId)?.name);
+      }
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [page, readerNoteId, readerLoading, notes]);
+
+  useEffect(() => {
+    if (page !== 'Reader' || !readerNoteId || readerLoading) return;
     const savedPosition = readProgress[readerNoteId];
     const frame = window.requestAnimationFrame(() => {
       const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
@@ -567,6 +592,7 @@ export default function MechaMindApp() {
     setUploadProgress(null);
     if (added.length) {
       setNotes(current => [...added, ...current.filter(n => !n.sample)]);
+      for (const note of added) recordStudyActivity('note-imported', note.id, note.name);
       setSubject('All subjects');
       setCourseFilter('All courses');
       setTagFilter('All tags');
@@ -628,6 +654,7 @@ export default function MechaMindApp() {
       return;
     }
     setReaderNoteId(note.id);
+    recordStudyActivity('reading-opened', note.id, note.name);
     setLastReadNoteId(note.id);
     setReaderText('');
     setReaderMediaUrl('');
@@ -710,7 +737,7 @@ export default function MechaMindApp() {
         const extracted = await vaultGet('text-' + note.storageKey);
         payload.push({ metadata: note, fileDataUrl: dataUrl, extractedText: extracted ? await extracted.text() : '' });
       }
-      const backup = { format: 'MechaMind backup', version: 2, exportedAt: new Date().toISOString(), notes: payload, readProgress, readerBookmarks, studyToolkit: (() => { try { return JSON.parse(localStorage.getItem('mechamind-learning-tools-v1') || 'null'); } catch { return null; } })() };
+      const backup = { format: 'MechaMind backup', version: 3, exportedAt: new Date().toISOString(), notes: payload, readProgress, readerBookmarks, studyToolkit: (() => { try { return JSON.parse(localStorage.getItem('mechamind-learning-tools-v1') || 'null'); } catch { return null; } })(), studyActivity: (() => { try { return JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]'); } catch { return []; } })() };
       const blob = new Blob([JSON.stringify(backup)], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -730,7 +757,7 @@ export default function MechaMindApp() {
       try { await vaultDelete(note.storageKey!); await vaultDelete('text-' + note.storageKey); } catch { /* Continue removing the remaining files. */ }
     }
     try {
-      [META_KEY, 'mechamind-read-progress-v1', 'mechamind-reader-bookmarks-v1', 'mechamind-last-reader', 'mechamind-learning-tools-v1'].forEach(key => localStorage.removeItem(key));
+      [META_KEY, 'mechamind-read-progress-v1', 'mechamind-reader-bookmarks-v1', 'mechamind-last-reader', 'mechamind-learning-tools-v1', ACTIVITY_KEY].forEach(key => localStorage.removeItem(key));
     } catch { /* Clear in-memory state even if localStorage is blocked. */ }
     setNotes([]);
     setSearchIndex({});
@@ -884,14 +911,15 @@ export default function MechaMindApp() {
     await runTutorPrompt(prompt, mode, documentText, note.name, initialChat);
   }
 
-  const pageTitle = page === 'Overview' ? "David's engineering cockpit" : page === 'My library' ? 'My library' : page === 'Starred' ? 'Starred notes' : page === 'Course' ? courseFilter : page === 'Reader' ? (readerNote?.name ?? 'Reading room') : page === 'Study toolkit' ? 'Study toolkit' : 'AI study desk';
-  const pageSubtitle = page === 'Overview' ? 'Bowen University, Mechatronics Engineering. One concept closer to your Ligron mission.' : page === 'My library' ? 'Find and organise every lecture file.' : page === 'Starred' ? 'Your saved references.' : page === 'Course' ? 'Course library and reading progress.' : page === 'Reader' ? 'Continue exactly where you left off.' : page === 'Study toolkit' ? 'Build cards, practise recall, and review on a schedule.' : 'Understand the why, not just the answer.';
+  const pageTitle = page === 'Overview' ? "David's engineering cockpit" : page === 'My library' ? 'My library' : page === 'Starred' ? 'Starred notes' : page === 'Course' ? courseFilter : page === 'Reader' ? (readerNote?.name ?? 'Reading room') : page === 'Study toolkit' ? 'Study toolkit' : page === 'Study analytics' ? 'Study analytics' : 'AI study desk';
+  const pageSubtitle = page === 'Overview' ? 'Bowen University, Mechatronics Engineering. One concept closer to your Ligron mission.' : page === 'My library' ? 'Find and organise every lecture file.' : page === 'Starred' ? 'Your saved references.' : page === 'Course' ? 'Course library and reading progress.' : page === 'Reader' ? 'Continue exactly where you left off.' : page === 'Study toolkit' ? 'Build cards, practise recall, and review on a schedule.' : page === 'Study analytics' ? 'See reading progress, review activity, and study consistency.' : 'Understand the why, not just the answer.';
   const navItems: { name: Page; icon: ReactNode }[] = [
     { name: 'Overview', icon: <Grid2X2 size={18} /> },
     { name: 'My library', icon: <Library size={18} /> },
     { name: 'Starred', icon: <Bookmark size={18} /> },
     { name: 'AI study desk', icon: <BrainCircuit size={18} /> },
     { name: 'Study toolkit', icon: <BookOpen size={18} /> },
+    { name: 'Study analytics', icon: <Activity size={18} /> },
   ];
 
   async function installApp() {
@@ -953,7 +981,7 @@ export default function MechaMindApp() {
       <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileNav(true)}><Menu size={20} /></button><div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{page}</strong></div><div className="topbar-actions"><label className="global-search"><Search size={17} /><input ref={searchInputRef} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search titles and lecture text…" aria-label="Search titles, subjects and extracted note text" /><kbd>/</kbd></label><button className="install-app-button" onClick={() => void installApp()} title="Install app on this device"><Download size={16} /><span>Install app</span></button><button className="theme-toggle icon-button" aria-label={'Theme: ' + themePreference + '. Click to change theme.'} title={themePreference === 'dark' ? 'Use light theme' : themePreference === 'light' ? 'Use system theme' : 'Use dark theme'} onClick={() => setThemePreference(value => value === 'dark' ? 'light' : value === 'light' ? 'system' : 'dark')}>{themePreference === 'system' ? <Settings2 size={18} /> : darkMode ? <Sun size={18} /> : <Moon size={18} />}</button><button className="top-upload" onClick={() => setUploadOpen(true)}><Plus size={17} /> <span>Add notes</span></button><div className="top-avatar">D</div></div></header>
 
       <div className="page-content">
-        {page !== 'AI study desk' && page !== 'Reader' && page !== 'Study toolkit' ? <>
+        {page !== 'AI study desk' && page !== 'Reader' && page !== 'Study toolkit' && page !== 'Study analytics' ? <>
           <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> {page === 'Overview' ? 'Bowen University, Mechatronics Engineering' : page === 'My library' ? 'Your study materials' : page === 'Course' ? 'Course page' : 'Your favourites'}</div><h1>{pageTitle}<span className="heading-period">.</span></h1><p>{pageSubtitle}</p></div><button className="primary-button" onClick={() => page === 'Course' && filteredNotes[0] ? void openReader(filteredNotes[0]) : setUploadOpen(true)}>{page === 'Course' && filteredNotes[0] ? <BookOpen size={17} /> : <UploadCloud size={17} />} {page === 'Course' && filteredNotes[0] ? 'Next lecture' : 'Upload notes'}</button></section>
           {page === 'Overview' && (
             <section className="welcome-panel">
@@ -1030,7 +1058,7 @@ export default function MechaMindApp() {
                 {readerText ? readerLines.map((line, index) => { const value = line.trim(); if (!value) return <div className="reader-spacer" key={index} id={'reader-line-' + index} />; if (/^\[PAGE\s+\d+\]$/i.test(value)) return <h2 className="reader-page-marker" key={index} id={'reader-line-' + index}>{value.replace(/[\[\]]/g, '').replace('PAGE', 'Page')}</h2>; if (value.length < 76 && value === value.toUpperCase() && /[A-Z]/.test(value) && !/[.!?]$/.test(value)) return <h3 className="reader-section-heading" key={index} id={'reader-line-' + index}>{value}</h3>; return <p key={index} id={'reader-line-' + index}>{line}</p>; }) : <div className="reader-empty"><h2>No text to display</h2><p>This file may be a scanned PDF or a format without text extraction. The original is still saved in your private library.</p>{readerNote && <button type="button" onClick={() => void downloadNote(readerNote)}>Download original file</button>}</div>}
               </article>
             </div>}
-        </section> : page === 'Study toolkit' ? <StudyToolkit notes={notes} getSource={getStudySource} notify={notify} /> : <section className="study-page"><div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> Think it through</div><h1>AI study desk<span className="heading-period">.</span></h1><p>One question can unlock a whole topic. Start anywhere.</p></div><div className="ai-status"><span /> {backendConfigured ? 'AI service configured' : 'Study preview'}</div></div><div className="study-layout"><aside className="study-aside"><div className="study-aside-icon"><BrainCircuit size={25} /></div><h2>Learn for understanding.</h2><p>Bring a question, a tricky formula or a concept you want to see from a different angle.</p><div className="study-divider" /><span className="section-kicker">Your next study moves</span><button onClick={() => setChatInput(personalStudyPaths[0].prompt)}><FileText size={16} /><span><b>CHM 101 deep dive</b><small>Balancing + stoichiometry</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[1].prompt)}><BrainCircuit size={16} /><span><b>Check the vector field</b><small>Curl, domain + circulation</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[2].prompt)}><Zap size={16} /><span><b>Derive motion equations</b><small>Start from v = u + at</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[3].prompt)}><BookOpen size={16} /><span><b>Map the Ligron path</b><small>Learning into real prototypes</small></span><ArrowRight size={15} /></button><div className="study-note-link"><BrainCircuit size={17} /><span><b>Your learning style</b><small>Step-by-step reasoning, worked calculations, diagrams where useful, and short quizzes that test understanding.</small></span></div></aside><div className="chat-panel"><div className="chat-panel-head"><div className="chat-bot-icon"><Sparkles size={18} /></div><div><strong>David's MechaMind companion</strong><small>Mechatronics, clear steps, real builds</small></div><button className="icon-button" onClick={() => { setChat([{ role: 'assistant', content: chatWelcome }]); setActiveDocumentText(''); setActiveDocumentName(''); setStudyMode('explain'); }}><MoreHorizontal size={18} /></button></div><div className="study-mode-picker" role="group" aria-label="Choose study mode"><span>Mode</span><button className={studyMode === 'explain' ? 'mode-active' : ''} onClick={() => setStudyMode('explain')} type="button">Explain</button><button className={studyMode === 'notes' ? 'mode-active' : ''} onClick={() => setStudyMode('notes')} type="button">Make notes</button><button className={studyMode === 'analyze' ? 'mode-active' : ''} onClick={() => setStudyMode('analyze')} type="button">Analyse</button><button className={studyMode === 'quiz' ? 'mode-active' : ''} onClick={() => setStudyMode('quiz')} type="button">Quiz</button><button className={studyMode === 'plan' ? 'mode-active' : ''} onClick={() => setStudyMode('plan')} type="button">Study plan</button></div>{activeDocumentName && <div className="active-document-pill"><FileText size={14} /><span>Using note: <strong>{activeDocumentName}</strong></span><button type="button" aria-label="Stop using this note" onClick={() => { setActiveDocumentName(''); setActiveDocumentText(''); }}>×</button></div>}<div className="chat-messages">{chat.map((message, index) => <div key={index} className={'chat-message ' + (message.role === 'user' ? 'user-message' : '')}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={15} /> : 'D'}</div><div className="message-bubble">{message.content.split('\n').map((line, i) => { const value = line.trim(); if (!value) return <div key={i} className="chat-md-spacer" />; if (value.startsWith('### ')) return <h5 key={i} className="chat-md-h5">{renderInlineMessage(value.slice(4))}</h5>; if (value.startsWith('## ')) return <h4 key={i} className="chat-md-h4">{renderInlineMessage(value.slice(3))}</h4>; if (value.startsWith('# ')) return <h3 key={i} className="chat-md-h3">{renderInlineMessage(value.slice(2))}</h3>; if (/^[-*]\s/.test(value)) return <p key={i} className="chat-md-list">• {renderInlineMessage(value.slice(2))}</p>; if (/^\d+\.\s/.test(value)) return <p key={i} className="chat-md-list">{renderInlineMessage(value)}</p>; return <p key={i}>{renderInlineMessage(value)}</p>; })}{message.role === 'assistant' && index > 0 && message.content.length > 220 && <div className="generated-result-actions"><button type="button" onClick={() => void copyStudyResult(message.content)}><Copy size={13} /> Copy</button><button type="button" onClick={() => downloadStudyResult(message.content)}><ArrowDownToLine size={13} /> Download Markdown</button><button type="button" className="save-generated-note" onClick={() => void saveGeneratedNote(message.content)}><BookmarkPlus size={13} /> Save to notes</button></div>}</div></div>)}{chatBusy && <div className="chat-message"><div className="message-avatar"><Sparkles size={15} /></div><div className="typing-dots"><i /><i /><i /></div></div>}<div ref={dropRef} /></div><form className="chat-composer" onSubmit={sendQuestion}><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={studyMode === 'notes' ? 'Paste lecture text or ask for structured notes…' : studyMode === 'analyze' ? 'Ask about a note, or analyse the attached file…' : studyMode === 'quiz' ? 'Choose a topic to be quizzed on…' : 'Ask anything you’re learning…'} rows={2} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendQuestion(e as unknown as FormEvent); } }} /><div className="composer-footer"><span><Sparkles size={13} /> Check the reasoning, not just the result</span><button type="submit" disabled={!chatInput.trim() || chatBusy} aria-label="Send message"><Send size={17} /></button></div></form><div className="chat-disclaimer">PDF, DOCX and text extraction runs in this browser. Extracted text is sent to the secure AI tutor only when you ask it to study a note; image-only scanned PDFs need OCR, which is not enabled yet.</div></div></div></section>}
+        </section> : page === 'Study toolkit' ? <StudyToolkit notes={notes} getSource={getStudySource} notify={notify} onActivity={recordStudyActivity} /> : page === 'Study analytics' ? <StudyAnalytics notes={notes} readProgress={readProgress} onGoToToolkit={() => setPage('Study toolkit')} onGoToLibrary={() => setPage('My library')} /> : <section className="study-page"><div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot" /> Think it through</div><h1>AI study desk<span className="heading-period">.</span></h1><p>One question can unlock a whole topic. Start anywhere.</p></div><div className="ai-status"><span /> {backendConfigured ? 'AI service configured' : 'Study preview'}</div></div><div className="study-layout"><aside className="study-aside"><div className="study-aside-icon"><BrainCircuit size={25} /></div><h2>Learn for understanding.</h2><p>Bring a question, a tricky formula or a concept you want to see from a different angle.</p><div className="study-divider" /><span className="section-kicker">Your next study moves</span><button onClick={() => setChatInput(personalStudyPaths[0].prompt)}><FileText size={16} /><span><b>CHM 101 deep dive</b><small>Balancing + stoichiometry</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[1].prompt)}><BrainCircuit size={16} /><span><b>Check the vector field</b><small>Curl, domain + circulation</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[2].prompt)}><Zap size={16} /><span><b>Derive motion equations</b><small>Start from v = u + at</small></span><ArrowRight size={15} /></button><button onClick={() => setChatInput(personalStudyPaths[3].prompt)}><BookOpen size={16} /><span><b>Map the Ligron path</b><small>Learning into real prototypes</small></span><ArrowRight size={15} /></button><div className="study-note-link"><BrainCircuit size={17} /><span><b>Your learning style</b><small>Step-by-step reasoning, worked calculations, diagrams where useful, and short quizzes that test understanding.</small></span></div></aside><div className="chat-panel"><div className="chat-panel-head"><div className="chat-bot-icon"><Sparkles size={18} /></div><div><strong>David's MechaMind companion</strong><small>Mechatronics, clear steps, real builds</small></div><button className="icon-button" onClick={() => { setChat([{ role: 'assistant', content: chatWelcome }]); setActiveDocumentText(''); setActiveDocumentName(''); setStudyMode('explain'); }}><MoreHorizontal size={18} /></button></div><div className="study-mode-picker" role="group" aria-label="Choose study mode"><span>Mode</span><button className={studyMode === 'explain' ? 'mode-active' : ''} onClick={() => setStudyMode('explain')} type="button">Explain</button><button className={studyMode === 'notes' ? 'mode-active' : ''} onClick={() => setStudyMode('notes')} type="button">Make notes</button><button className={studyMode === 'analyze' ? 'mode-active' : ''} onClick={() => setStudyMode('analyze')} type="button">Analyse</button><button className={studyMode === 'quiz' ? 'mode-active' : ''} onClick={() => setStudyMode('quiz')} type="button">Quiz</button><button className={studyMode === 'plan' ? 'mode-active' : ''} onClick={() => setStudyMode('plan')} type="button">Study plan</button></div>{activeDocumentName && <div className="active-document-pill"><FileText size={14} /><span>Using note: <strong>{activeDocumentName}</strong></span><button type="button" aria-label="Stop using this note" onClick={() => { setActiveDocumentName(''); setActiveDocumentText(''); }}>×</button></div>}<div className="chat-messages">{chat.map((message, index) => <div key={index} className={'chat-message ' + (message.role === 'user' ? 'user-message' : '')}><div className="message-avatar">{message.role === 'assistant' ? <Sparkles size={15} /> : 'D'}</div><div className="message-bubble">{message.content.split('\n').map((line, i) => { const value = line.trim(); if (!value) return <div key={i} className="chat-md-spacer" />; if (value.startsWith('### ')) return <h5 key={i} className="chat-md-h5">{renderInlineMessage(value.slice(4))}</h5>; if (value.startsWith('## ')) return <h4 key={i} className="chat-md-h4">{renderInlineMessage(value.slice(3))}</h4>; if (value.startsWith('# ')) return <h3 key={i} className="chat-md-h3">{renderInlineMessage(value.slice(2))}</h3>; if (/^[-*]\s/.test(value)) return <p key={i} className="chat-md-list">• {renderInlineMessage(value.slice(2))}</p>; if (/^\d+\.\s/.test(value)) return <p key={i} className="chat-md-list">{renderInlineMessage(value)}</p>; return <p key={i}>{renderInlineMessage(value)}</p>; })}{message.role === 'assistant' && index > 0 && message.content.length > 220 && <div className="generated-result-actions"><button type="button" onClick={() => void copyStudyResult(message.content)}><Copy size={13} /> Copy</button><button type="button" onClick={() => downloadStudyResult(message.content)}><ArrowDownToLine size={13} /> Download Markdown</button><button type="button" className="save-generated-note" onClick={() => void saveGeneratedNote(message.content)}><BookmarkPlus size={13} /> Save to notes</button></div>}</div></div>)}{chatBusy && <div className="chat-message"><div className="message-avatar"><Sparkles size={15} /></div><div className="typing-dots"><i /><i /><i /></div></div>}<div ref={dropRef} /></div><form className="chat-composer" onSubmit={sendQuestion}><textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={studyMode === 'notes' ? 'Paste lecture text or ask for structured notes…' : studyMode === 'analyze' ? 'Ask about a note, or analyse the attached file…' : studyMode === 'quiz' ? 'Choose a topic to be quizzed on…' : 'Ask anything you’re learning…'} rows={2} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendQuestion(e as unknown as FormEvent); } }} /><div className="composer-footer"><span><Sparkles size={13} /> Check the reasoning, not just the result</span><button type="submit" disabled={!chatInput.trim() || chatBusy} aria-label="Send message"><Send size={17} /></button></div></form><div className="chat-disclaimer">PDF, DOCX and text extraction runs in this browser. Extracted text is sent to the secure AI tutor only when you ask it to study a note; image-only scanned PDFs need OCR, which is not enabled yet.</div></div></div></section>}
           <footer className="page-footer"><span>Made for curious minds <span className="footer-spark">✳</span></span><span><span className="privacy-dot" /> Your files stay on this device in this version</span></footer>
       </div>
     </main>
