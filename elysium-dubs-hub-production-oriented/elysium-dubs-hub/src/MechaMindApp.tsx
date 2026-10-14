@@ -710,7 +710,7 @@ export default function MechaMindApp() {
         const extracted = await vaultGet('text-' + note.storageKey);
         payload.push({ metadata: note, fileDataUrl: dataUrl, extractedText: extracted ? await extracted.text() : '' });
       }
-      const backup = { format: 'MechaMind backup', version: 1, exportedAt: new Date().toISOString(), notes: payload, readProgress, readerBookmarks };
+      const backup = { format: 'MechaMind backup', version: 2, exportedAt: new Date().toISOString(), notes: payload, readProgress, readerBookmarks, studyToolkit: (() => { try { return JSON.parse(localStorage.getItem('mechamind-learning-tools-v1') || 'null'); } catch { return null; } })() };
       const blob = new Blob([JSON.stringify(backup)], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -724,13 +724,13 @@ export default function MechaMindApp() {
   }
 
   async function deleteEverything() {
-    const confirmed = window.confirm('Delete every saved MechaMind file, note, bookmark and reading position from this browser? This cannot be undone. Export a backup first if you need one.');
+    const confirmed = window.confirm('Delete every saved MechaMind file, flashcard, glossary term, recap, bookmark and reading position from this browser? This cannot be undone. Export a backup first if you need one.');
     if (!confirmed) return;
     for (const note of notes.filter(item => !item.sample && item.storageKey)) {
       try { await vaultDelete(note.storageKey!); await vaultDelete('text-' + note.storageKey); } catch { /* Continue removing the remaining files. */ }
     }
     try {
-      [META_KEY, 'mechamind-read-progress-v1', 'mechamind-reader-bookmarks-v1', 'mechamind-last-reader'].forEach(key => localStorage.removeItem(key));
+      [META_KEY, 'mechamind-read-progress-v1', 'mechamind-reader-bookmarks-v1', 'mechamind-last-reader', 'mechamind-learning-tools-v1'].forEach(key => localStorage.removeItem(key));
     } catch { /* Clear in-memory state even if localStorage is blocked. */ }
     setNotes([]);
     setSearchIndex({});
@@ -742,7 +742,7 @@ export default function MechaMindApp() {
     setReaderMediaUrl('');
     setSettingsOpen(false);
     setPage('Overview');
-    notify('Saved files and learning history were deleted from this browser.');
+    notify('Saved files, study tools and reading history were deleted from this browser.');
   }
 
   async function saveGeneratedNote(noteContent: string) {
