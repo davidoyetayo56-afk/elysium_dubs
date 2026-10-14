@@ -40,13 +40,13 @@
 .analytics-chart-day { display: flex; min-width: 0; flex-direction: column; align-items: center; justify-content: flex-end; gap: 7px; }
 .analytics-chart-barspace { display: flex; flex: 1; width: 100%; min-height: 122px; flex-direction: column; align-items: center; justify-content: flex-end; gap: 7px; }
 .analytics-chart-count { height: 11px; color: var(--an-muted); font-size: 8px; }
-.analytics-chart-track { display: flex; align-items: flex-end; justify-content: center; width: min(100%, 28px); height: 96px; overflow: hidden; border-radius: 6px 6px 4px 4px; background: var(--an-panel-muted); }
-.analytics-chart-track i { display: block; width: 100%; min-height: 0; border-radius: 6px 6px 3px 3px; background: linear-gradient(180deg, #7fab89, var(--an-green)); transition: height .25s ease; }
+.analytics-chart-track { display: flex; flex-direction: column-reverse; align-items: stretch; justify-content: flex-start; width: min(100%, 28px); height: 96px; overflow: hidden; border-radius: 6px 6px 4px 4px; background: var(--an-panel-muted); }
+.analytics-chart-track i, .analytics-chart-track b { display: block; flex: 0 0 auto; width: 100%; min-height: 0; border-radius: 0; transition: height .25s ease; }\n.analytics-chart-track i { background: var(--an-green); }\n.analytics-chart-track b { background: #9fbea6; }
 .analytics-chart-dayname { color: var(--an-ink); font-size: 9px; font-weight: 750; }
 .analytics-chart-day small { color: var(--an-muted); font-size: 8px; white-space: nowrap; }
 .analytics-chart-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; color: var(--an-muted); font-size: 9px; }
 .analytics-chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.analytics-chart-legend i { width: 7px; height: 7px; border-radius: 3px; background: var(--an-green); }
+.analytics-chart-legend i { width: 7px; height: 7px; border-radius: 3px; background: var(--an-green); }\n.analytics-chart-legend span:nth-child(2) i { background: #9fbea6; }
 .analytics-panel-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 10px; color: var(--an-green); background: var(--an-green-soft); }
 .analytics-progress-summary { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 14px; }
 .analytics-progress-summary strong { font: 800 29px Manrope, sans-serif; color: var(--an-green-strong); }
@@ -87,4 +87,4 @@
   .analytics-event-row { grid-template-columns: 8px minmax(0, 1fr); }
   .analytics-event-row time { grid-column: 2; }
 }
-@media (prefers-reduced-motion: reduce) { .analytics-chart-track i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .analytics-chart-track i, .analytics-chart-track b { transition: none; } }
