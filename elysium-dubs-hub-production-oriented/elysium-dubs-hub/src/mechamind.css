@@ -720,3 +720,37 @@ body{min-height:100%;min-width:320px;overflow-x:hidden;overflow-y:auto;-webkit-o
 @media(prefers-reduced-motion:reduce){.mm-app .skeleton-line{animation:none}.mm-app .continue-progress span,.mm-app .reader-progress-track span,.mm-app .upload-progress-track span{transition:none}}
 
 .mm-app .settings-modal{max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain}
+
+
+/* Phase 3 visibility: put the new study tools directly on the home dashboard. */
+.mm-app .study-shortcuts{margin:0 0 30px;padding:22px;border:1px solid #e7e4f0;border-radius:17px;background:linear-gradient(135deg,#fff 0%,#faf9ff 100%)}
+.mm-app .study-shortcuts-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:15px;margin-bottom:17px}
+.mm-app .study-shortcuts-heading h2{margin:7px 0 5px;color:#292735;font:750 19px/1.3 Manrope,sans-serif;letter-spacing:-.45px}
+.mm-app .study-shortcuts-heading p{margin:0;color:#898795;font-size:11px;line-height:1.7}
+.mm-app .study-shortcuts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.mm-app .study-shortcut{display:flex;align-items:flex-start;gap:14px;width:100%;min-width:0;padding:18px;border:1px solid #e9e6f2;border-radius:13px;background:#fff;color:#292735;text-align:left;transition:transform .18s,border-color .18s,box-shadow .18s}
+.mm-app .study-shortcut:hover{transform:translateY(-2px);border-color:#c9bdf7;box-shadow:0 10px 25px #4d397b0d}
+.mm-app .study-shortcut:focus-visible{outline:3px solid #c6b9ff;outline-offset:3px}
+.mm-app .study-shortcut-icon{display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;border-radius:12px}
+.mm-app .shortcut-flashcards{background:#f0edff;color:#7253df}
+.mm-app .shortcut-analytics{background:#e4f8ef;color:#27845f}
+.mm-app .study-shortcut-copy{display:grid;justify-items:start;min-width:0;gap:7px}
+.mm-app .study-shortcut-kicker{color:#8981a5;font-size:8px;font-weight:800;letter-spacing:1.15px}
+.mm-app .study-shortcut-copy strong{color:#302e3b;font:750 15px/1.3 Manrope,sans-serif}
+.mm-app .study-shortcut-copy small{display:block;color:#858390;font-size:10px;line-height:1.75;font-weight:400}
+.mm-app .study-shortcut-action{display:inline-flex;align-items:center;gap:6px;margin-top:3px;color:#6f51d9;font-size:10px;font-weight:750}
+.mm-app .study-shortcut:nth-child(2) .study-shortcut-action{color:#287f5e}
+.mm-app.theme-dark .study-shortcuts{border-color:#292a31;background:linear-gradient(135deg,#14151a 0%,#171620 100%)}
+.mm-app.theme-dark .study-shortcuts-heading h2,.mm-app.theme-dark .study-shortcut-copy strong{color:#f0f0f4}
+.mm-app.theme-dark .study-shortcuts-heading p,.mm-app.theme-dark .study-shortcut-copy small{color:#a4a4b0}
+.mm-app.theme-dark .study-shortcut{border-color:#30313b;background:#191a21;color:#f0f0f4}
+.mm-app.theme-dark .study-shortcut:hover{border-color:#6553a4}
+.mm-app.theme-dark .study-shortcut-kicker{color:#b3a4ed}
+.mm-app.theme-dark .shortcut-flashcards{background:#28213e;color:#c7b9ff}
+.mm-app.theme-dark .shortcut-analytics{background:#1c3329;color:#8bd8b2}
+@media(max-width:700px){
+  .mm-app .study-shortcuts{padding:16px;margin-bottom:24px}
+  .mm-app .study-shortcuts-heading h2{font-size:17px}
+  .mm-app .study-shortcuts-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+  .mm-app .study-shortcut{padding:15px;gap:12px}
+}
