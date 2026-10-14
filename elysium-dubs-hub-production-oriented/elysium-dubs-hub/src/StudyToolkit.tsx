@@ -145,8 +145,7 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
     // notify is a parent callback recreated during render; data is the intended persistence trigger.
   }, [data]);
   useEffect(() => {
-    if (!selectedNoteId && sourceNotes.length) setSelectedNoteId(sourceNotes[0].id);
-    if (selectedNoteId && !sourceNotes.some(note => note.id === selectedNoteId)) setSelectedNoteId(sourceNotes[0]?.id ?? '');
+    if (selectedNoteId && !sourceNotes.some(note => note.id === selectedNoteId)) setSelectedNoteId('');
   }, [selectedNoteId, sourceNotes]);
   const dueCards = useMemo(() => data.flashcards.filter(dueNow).sort((a, b) => a.dueAt.localeCompare(b.dueAt)), [data.flashcards]);
   const dueForDeck = dueCards.filter(card => !selectedNoteId || card.noteId === selectedNoteId);
@@ -162,7 +161,7 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
     const current = practiceCards[practiceIndex];
     if (!current) return [];
     const distractors = practiceCards.filter(card => card.id !== current.id && card.back !== current.back).map(card => card.back).filter((answer, index, list) => list.indexOf(answer) === index).slice(0, 3);
-    return [current.back, ...distractors];
+    return [current.back, ...distractors].sort(() => Math.random() - 0.5);
   }, [practiceCards, practiceIndex]);
   function selectTab(next: ToolkitTab) { setTab(next); setShowAnswer(false); setReviewCardId(''); }
   async function generateForNote(event?: FormEvent) {
@@ -207,8 +206,9 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
     if (!next) notify('Review round complete. Your next review has been scheduled.');
   }
   function startPractice() {
-    const candidates = noteCards.filter(card => card.back.trim());
-    if (candidates.length < 3) { notify('Create at least three flashcards for a multiple-choice round.'); setTab('Flashcards'); return; }
+    const allCandidates = noteCards.filter(card => card.back.trim());
+    const candidates = allCandidates.filter((card, index) => allCandidates.findIndex(item => item.back === card.back) === index);
+    if (candidates.length < 3) { notify('Create at least three flashcards with different answers for a multiple-choice round.'); setTab('Flashcards'); return; }
     setPracticeCards([...candidates].sort(() => Math.random() - 0.5).slice(0, Math.min(10, candidates.length)));
     setPracticeIndex(0); setPracticeChoice(''); setPracticeScore(0); setPracticeFinished(false); setPracticeStarted(true); setTab('Practice');
   }
