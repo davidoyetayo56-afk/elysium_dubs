@@ -13,6 +13,7 @@ MechaMind is a React + TypeScript + Vite app published on GitHub Pages. Its priv
 - Reading room for extracted lecture text, saved reading progress, bookmarks, adjustable text size and width, and browser read-aloud.
 - In-browser playback for imported audio/video and image preview. Media never auto-plays.
 - A persistent "Now studying" bar, course shelves, backup export and a delete-local-data action.
+- Study toolkit with source-text draft flashcards, manual cards, glossary entries, multiple-choice practice rounds, spaced review scheduling, and short lecture recaps. Study-tool data stays in browser storage and is included in full backup export.
 - Deep-black, light and system appearance settings.
 - Optional secure AI note generation and lecture analysis through a Supabase Edge Function. The browser must never contain a provider API key.
 - Installable PWA shell with an offline cache for previously visited app shell and built assets.
@@ -50,7 +51,8 @@ The GitHub Actions workflow at `.github/workflows/deploy.yml` builds the Vite ap
 - PDF reading currently presents extracted text with page markers, not a pixel-perfect PDF page canvas. Use the original download for exact layout.
 - PPTX/legacy slide text extraction and synced audio/video transcripts are not implemented.
 - Reading progress is a percentage of the reader page and adapts to the current viewport; it is not yet an exact PDF page/scroll-position anchor across device sizes.
-- Course shelves are inferred from the course code/labels on imported files. Collections, cloud sync, full spaced-repetition learning tools and advanced analytics are planned for later phases.
+- Course shelves are inferred from the course code/labels on imported files. Collections, cloud sync and advanced learning analytics are not implemented yet.
+- Study-toolkit cards, glossary entries and recaps are generated with local text-pattern heuristics, not a language model. They can miss context or create awkward prompts, so verify all generated material against the original lecture. Manual editing of individual generated cards is not yet available; you can delete and recreate a note's generated set.
 - The live AI service requires Supabase project configuration and a separate deployment of the Edge Function. GitHub Pages deploys only the static website.
 
 ## AI service setup
