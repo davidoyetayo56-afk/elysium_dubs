@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mechamind-shell-v2';
+const CACHE_NAME = 'mechamind-shell-v3';
 const APP_ROOT = new URL('./', self.registration.scope).toString();
 
 self.addEventListener('install', event => {
