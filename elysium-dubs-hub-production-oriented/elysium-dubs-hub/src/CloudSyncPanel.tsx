@@ -133,6 +133,7 @@ export default function CloudSyncPanel({
         setStatus('Syncing files: ' + (uploaded + downloaded + 1) + ' processed…');
         const localBlob = await readFile(note.storageKey!);
         const remoteNote = remoteById.get(note.id);
+        if (localBlob) locallyAvailable.add(note.id);
         if (!localBlob) {
           if (remoteNote) warnings.push(note.name + ': original missing locally; kept the cloud copy.');
           else warnings.push(note.name + ': original file was not found, so it was not synced.');
@@ -164,7 +165,7 @@ export default function CloudSyncPanel({
 
       const downloadedNotes: CloudNote[] = [];
       for (const remoteNote of remote.notes ?? []) {
-        if (locallyAvailable.has(remoteNote.id) || localNotes.some(note => note.id === remoteNote.id && note.storageKey)) continue;
+        if (locallyAvailable.has(remoteNote.id)) continue;
         setStatus('Restoring cloud files: ' + (downloaded + 1) + '…');
         const { data: blob, error } = await supabase.storage.from(BUCKET).download(user.id + '/' + remoteNote.id + '/original');
         if (error || !blob) { warnings.push(remoteNote.name + ': could not download the cloud original.'); continue; }
