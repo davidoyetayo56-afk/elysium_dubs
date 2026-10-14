@@ -142,7 +142,7 @@ export default function StudyToolkit({ notes, getSource, notify, onActivity }: {
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
     catch { notify('Study tools could not be saved because browser storage may be full.'); }
-  }, [data, notify]);
+  }, [data]);
   useEffect(() => {
     if (selectedNoteId && !sourceNotes.some(note => note.id === selectedNoteId)) setSelectedNoteId('');
   }, [selectedNoteId, sourceNotes]);
