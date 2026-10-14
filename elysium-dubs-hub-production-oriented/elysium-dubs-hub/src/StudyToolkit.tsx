@@ -119,7 +119,7 @@ function applyRating(card: Flashcard, rating: 'again' | 'hard' | 'good' | 'easy'
   return { ...card, ease, intervalDays: interval, repetitions, dueAt: dueIn(waitMs), lastReviewedAt: new Date().toISOString() };
 }
 
-export default function StudyToolkit({ notes, getSource, notify }: { notes: StudyNote[]; getSource: (noteId: string) => Promise<StudySource | null>; notify: (message: string) => void }) {
+export default function StudyToolkit({ notes, getSource, notify, onActivity }: { notes: StudyNote[]; getSource: (noteId: string) => Promise<StudySource | null>; notify: (message: string) => void; onActivity: (type: string, noteId?: string, noteName?: string) => void }) {
   const [data, setData] = useState<ToolkitData>(loadData);
   const [tab, setTab] = useState<ToolkitTab>('Overview');
   const [selectedNoteId, setSelectedNoteId] = useState('');
@@ -142,8 +142,7 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
     catch { notify('Study tools could not be saved because browser storage may be full.'); }
-    // notify is a parent callback recreated during render; data is the intended persistence trigger.
-  }, [data]);
+  }, [data, notify]);
   useEffect(() => {
     if (selectedNoteId && !sourceNotes.some(note => note.id === selectedNoteId)) setSelectedNoteId('');
   }, [selectedNoteId, sourceNotes]);
@@ -179,6 +178,7 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
         recaps: [...previous.recaps.filter(recap => recap.noteId !== selectedNoteId), artifacts.recap],
       }));
       setReviewCardId(''); setShowAnswer(false); setTab('Overview');
+      onActivity('study-set-generated', source.note.id, source.note.name);
       notify('Study set created from ' + source.note.name + '. Check every draft against the original lecture.');
     } catch { notify('Could not build the study set from this file. Try opening it in the reading room first.'); }
     finally { setIsGenerating(false); }
@@ -188,12 +188,14 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
     if (!draftFront.trim() || !draftBack.trim()) { notify('Add both a question and its answer.'); return; }
     const card: Flashcard = { id: makeId(), noteId: selectedNote?.id ?? 'manual-deck', noteName: selectedNote?.name ?? 'My own cards', front: draftFront.trim(), back: draftBack.trim(), createdAt: new Date().toISOString(), dueAt: new Date().toISOString(), intervalDays: 0, ease: 2.5, repetitions: 0 };
     setData(previous => ({ ...previous, flashcards: [...previous.flashcards, card] }));
+    onActivity('flashcard-added', card.noteId, card.noteName);
     setDraftFront(''); setDraftBack(''); notify('Flashcard added to your local study deck.');
   }
   function addManualTerm(event: FormEvent) {
     event.preventDefault();
     if (!draftTerm.trim() || !draftDefinition.trim()) { notify('Add both a term and its definition.'); return; }
     setData(previous => ({ ...previous, glossary: [...previous.glossary, { id: makeId(), noteId: selectedNote?.id ?? 'manual-deck', noteName: selectedNote?.name ?? 'My glossary', term: draftTerm.trim(), definition: draftDefinition.trim(), createdAt: new Date().toISOString() }] }));
+    onActivity('glossary-term-added', selectedNote?.id, selectedNote?.name);
     setDraftTerm(''); setDraftDefinition(''); notify('Glossary entry saved on this device.');
   }
   function rateCard(rating: 'again' | 'hard' | 'good' | 'easy') {
@@ -203,6 +205,7 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
     setData(previous => ({ ...previous, flashcards: previous.flashcards.map(card => card.id === reviewCard.id ? updated : card) }));
     const next = nextCards.filter(card => card.id !== reviewCard.id && dueNow(card) && (!selectedNoteId || card.noteId === selectedNoteId)).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
     setReviewCardId(next?.id ?? ''); setShowAnswer(false);
+    onActivity('flashcard-reviewed', reviewCard.noteId, reviewCard.noteName);
     if (!next) notify('Review round complete. Your next review has been scheduled.');
   }
   function startPractice() {
@@ -218,7 +221,7 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
     if (answer === practiceCards[practiceIndex]?.back) setPracticeScore(score => score + 1);
   }
   function advancePractice() {
-    if (practiceIndex + 1 >= practiceCards.length) { setPracticeFinished(true); return; }
+    if (practiceIndex + 1 >= practiceCards.length) { setPracticeFinished(true); onActivity('practice-completed', selectedNote?.id, selectedNote?.name); return; }
     setPracticeIndex(index => index + 1); setPracticeChoice('');
   }
   function deleteCard(cardId: string) {
@@ -228,7 +231,9 @@ export default function StudyToolkit({ notes, getSource, notify }: { notes: Stud
   }
   function deleteTerm(termId: string) { setData(previous => ({ ...previous, glossary: previous.glossary.filter(term => term.id !== termId) })); notify('Glossary entry removed.'); }
   function markRecapReviewed(recapId: string) {
-    setData(previous => ({ ...previous, recaps: previous.recaps.map(recap => recap.id === recapId ? { ...recap, reviewedAt: new Date().toISOString() } : recap) }));
+    const recap = data.recaps.find(item => item.id === recapId);
+    setData(previous => ({ ...previous, recaps: previous.recaps.map(item => item.id === recapId ? { ...item, reviewedAt: new Date().toISOString() } : item) }));
+    if (recap) onActivity('recap-reviewed', recap.noteId, recap.noteName);
     notify('Recap marked as reviewed.');
   }
 
