@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Cloud, CloudDownload, CloudUpload, Link2, LoaderCircle, LogOut, ShieldCheck } from 'lucide-react';
+import { Cloud, CloudUpload, Link2, LoaderCircle, LogOut, ShieldCheck } from 'lucide-react';
 import { backendConfigured, friendlyError, supabase } from './lib/supabase';
 
 export type CloudNote = { id: string; name: string; subject: string; course: string; kind: string; size: number; createdAt: string; starred: boolean; tags: string[]; storageKey?: string; sample?: boolean; fileName?: string };
